@@ -140,7 +140,7 @@ class AlphaBetaPlayer:
     def get_action(self, board):
         board_copy = copy.deepcopy(board)
         engine = SearchEngine(board_copy, self.player)
-        #engine = SearchEngine(board, self.player)
+        # engine = SearchEngine(board, self.player)
 
         engine.maxDepth = self.searchDepth
         engine.AlphaBeta(0, 0, 100)
