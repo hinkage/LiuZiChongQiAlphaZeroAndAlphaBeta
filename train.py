@@ -21,7 +21,7 @@ class TrainPipeline():
         self.board_width = 4
         self.board_height = 4
         self.board = Board(width=self.board_width, height=self.board_height)
-        self.board.init_board()
+        self.board.initBoard()
         self.game = Game(self.board)
         # training params
         self.learn_rate = 5e-3
@@ -72,7 +72,7 @@ class TrainPipeline():
     def collect_selfplay_data(self, n_games=1):
         """collect self-play data for training"""
         for i in range(n_games):
-            winner, play_data = self.game.start_self_play(self.zero_player, is_shown=False, temp=self.temp)
+            winner, play_data = self.game.startSelfPlay(self.zero_player, is_shown=False, temp=self.temp)
             play_data = list(play_data)[:]
             self.episode_len = len(play_data)
             # augment the data
@@ -114,11 +114,11 @@ class TrainPipeline():
         win_cnt = defaultdict(int)
         for i in range(n_games):
             # 这里有个bug，评估的时候start_player是0，1互换的，这就导致白棋先行，而这是训练时没有产生的情况
-            # 所以这里把winner = self.game.start_play(cur_zero_player, pure_mcts_player, start_player=i%2, is_shown=1)改为如下代码：
+            # 所以这里把winner = self.game.startPlay(cur_zero_player, pure_mcts_player, startPlayer=i%2, is_shown=1)改为如下代码：
             if 0 == i%2:
-                winner = self.game.start_play(cur_zero_player, pure_mcts_player, start_player=0, is_shown=1)
+                winner = self.game.startPlay(cur_zero_player, pure_mcts_player, startPlayer=0, is_shown=1)
             else:
-                winner = self.game.start_play(pure_mcts_player, cur_zero_player, start_player=0, is_shown=1)
+                winner = self.game.startPlay(pure_mcts_player, cur_zero_player, startPlayer=0, is_shown=1)
             if winner == -1:
                     win_cnt[-1] += 1
             elif winner == 0:

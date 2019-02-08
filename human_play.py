@@ -25,7 +25,7 @@ class HumanPlayer(object):
             location = input("Your move: ")
             if isinstance(location, str):
                 location = [int(n, 10) for n in location.split(",")]  # for python3
-            move = board.location_to_move(location)
+            move = board.coordinate2Move(location)
         except Exception as e:
             move = -1
         if move == -1 or move not in board.calcSensibleMoves(board.current_player):
@@ -42,7 +42,7 @@ def run():
     model_file = 'best_policy_8_8_5.model'
     try:
         board = Board(width=width, height=height)
-        board.init_board()
+        board.initBoard()
         game = Game(board)
         try:
             policy_param = pickle.load(open(model_file, 'rb'))
@@ -53,7 +53,7 @@ def run():
         human_player = HumanPlayer()     
         #human = MCTSPlayer(best_policy.policy_value_fn, c_puct=5, n_playout=400)              
         
-        game.start_play(human_player, pure_player, start_player=0, is_shown=1)
+        game.startPlay(human_player, pure_player, startPlayer=0, is_shown=1)
     except KeyboardInterrupt:
         print('\n\rquit')
 

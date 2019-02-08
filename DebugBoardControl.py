@@ -49,20 +49,20 @@ class Game(object):
             print('\r\n\r\n')
 
     def start_self_play(self, player, is_shown=1, temp=1e-3):
-        self.board.init_board()  # 重新初始化所有棋盘信息
+        self.board.initBoard()  # 重新初始化所有棋盘信息
         p1, p2 = self.board.players
         states, mcts_probs, current_players = [], [], []
         while True:
-            move, move_probs = player.get_action(self.board, temp=temp, return_prob=1)
+            move, move_probs = player.getAction(self.board, temp=temp, return_prob=1)
             # store the data
             states.append(self.board.current_state())
             mcts_probs.append(move_probs)
             current_players.append(self.board.current_player)
             # perform a move
-            self.board.do_move(move)
+            self.board.doMove(move)
             if is_shown:
                 self.graphic(self.board, p1, p2)
-            end, winner = self.board.is_game_end()
+            end, winner = self.board.isGameEnd()
             if end:
                 # winner from the  perspective of the current player of each state
                 winners_z = np.zeros(len(current_players))
@@ -83,8 +83,8 @@ class Game(object):
         start a game between two players
         """
         if start_player not in (0, 1):
-            raise Exception('start_player should be 0 (player1 first) or 1 (player2 first)')
-        self.board.init_board(start_player)  # 重新初始化所有棋盘信息
+            raise Exception('startPlayer should be 0 (player1 first) or 1 (player2 first)')
+        self.board.initBoard(start_player)  # 重新初始化所有棋盘信息
         p1, p2 = self.board.players
         player1.setPlayerIndex(p1)
         player2.setPlayerIndex(p2)
@@ -92,14 +92,14 @@ class Game(object):
         if is_shown:
             self.graphic(self.board, player1.player, player2.player)
         while 1:
-            current_player = self.board.get_current_player()
+            current_player = self.board.getCurrentPlayer()
             player_in_turn = players[current_player]
             move = player_in_turn.get_action(self.board)
             # print("do move:{}".format(move))
-            self.board.do_move(move)
+            self.board.doMove(move)
             if is_shown:
                 self.graphic(self.board, player1.player, player2.player)
-            end, winner = self.board.is_game_end()
+            end, winner = self.board.isGameEnd()
             if end:
                 if is_shown:
                     if winner != -1:
@@ -128,7 +128,7 @@ class HumanPlayer(object):
             print("invalid move")
             move = self.get_action(board)
 
-        location = board.move_to_location(move)
+        location = board.move2coordinate(move)
         print("HumanPlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
 
         game.has_human_moved = False
@@ -216,7 +216,7 @@ def mouse_func(button, state, x, y):
                         game.has_human_moved = True
                         while game.has_human_moved:
                             pass
-                        # game.board.do_move(move)
+                        # game.board.doMove(move)
                         game.is_selected = False
 
 
@@ -346,7 +346,7 @@ def thread_ui():
     """
     global board
     board = Board(width=4, height=4)
-    board.init_board()
+    board.initBoard()
     global game
     game = Game(board)
     _thread.start_new_thread(main_loop, ())
@@ -376,7 +376,7 @@ def run():
         human_player0 = HumanPlayer()
         human_player1 = HumanPlayer()
         while test_times > 0:
-            game.start_play(human_player0, human_player1, start_player=0, is_shown=1)
+            game.startPlay(human_player0, human_player1, startPlayer=0, is_shown=1)
             test_times -= 1
     except KeyboardInterrupt:
         print('\n\rquit')

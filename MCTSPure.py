@@ -120,11 +120,11 @@ class MCTS(object):
                 break
             # Greedily select next move.
             action, node = node.select(self._c_puct)
-            state.do_move(action)
+            state.doMove(action)
 
         action_probs, _ = self._policy(state)
         # Check for end of game
-        end, winner = state.is_game_end()
+        end, winner = state.isGameEnd()
         if not end:
             node.expand(action_probs)
         # Evaluate the leaf node by random rollout
@@ -136,14 +136,14 @@ class MCTS(object):
         """Use the rollout policy to play until the end of the game, returning +1 if the current
         player wins, -1 if the opponent wins, and 0 if it is a tie.
         """
-        player = state.get_current_player()
+        player = state.getCurrentPlayer()
         for i in range(limit):
-            end, winner = state.is_game_end()
+            end, winner = state.isGameEnd()
             if end:
                 break
             action_probs = rollout_policy_fn(state)
             max_action = max(action_probs, key=itemgetter(1))[0]
-            state.do_move(max_action)
+            state.doMove(max_action)
         else:
             # If no break from the loop, issue a warning.
             print("WARNING: rollout reached move limit")
@@ -196,7 +196,7 @@ class MCTSPurePlayer(object):
             move = self.mcts.get_move(board)
             self.mcts.update_with_move(-1)
             if self.is_shown:
-                location = board.move_to_location(move)
+                location = board.move2coordinate(move)
                 print("MCTSPurePlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
 
             return move

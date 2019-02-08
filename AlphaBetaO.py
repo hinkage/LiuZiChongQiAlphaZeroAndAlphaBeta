@@ -21,7 +21,7 @@ class SearchEngine:
         self.accessCount = 0
 
     def isGameOver(self, depth): # 发现-100和+100写反了导致了bug. 2018/5/27
-        end, winner = self.board.is_game_end()
+        end, winner = self.board.isGameEnd()
         if end == True:
             return 100 - depth
 
@@ -45,7 +45,7 @@ class SearchEngine:
         if isMaxNode:#最大值层返回最大值分支
             moves = self.board.getAvailables()
             for move in moves:                    
-                self.board.do_move(move)
+                self.board.doMove(move)
                 score = self.AlphaBeta(depth + 1, alpha, beta) # 深度优先
                 self.board.undo_move() #
                 
@@ -69,7 +69,7 @@ class SearchEngine:
                 if depth == 0:
                     self.default_move = move
                 # 递归    
-                self.board.do_move(move)
+                self.board.doMove(move)
                 score = self.AlphaBeta(depth + 1, alpha, beta) # 深度优先
                 self.board.undo_move() # 
                 
@@ -104,7 +104,7 @@ class SearchEngine:
         for move in moves:            
             if depth == 0:
                 self.default_move = move
-            self.board.do_move(move)
+            self.board.doMove(move)
             score = self.AlphaBeta(depth + 1, alpha, beta) # 深度优先
             self.board.undo_move() # 
             isMaxNode = depth % 2
@@ -146,7 +146,7 @@ class AlphaBetaPlayer:
         engine.AlphaBeta(0, 0, 100)
         best_move = engine.best_move
         if self.is_shown:
-            location = board.move_to_location(best_move)
+            location = board.move2coordinate(best_move)
             print("AlphaBetaPlayer choose action: %d,%d to %d,%d, accessCount: %d\n" % (location[0], location[1], location[2], location[3], engine.accessCount))
             print(engine.action_dict)
         return best_move

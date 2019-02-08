@@ -109,13 +109,13 @@ class MCTS(object):
                 break                
             # Greedily select next move.
             action, node = node.select(self._c_puct)            
-            state.do_move(action)
+            state.doMove(action)
 
         # Evaluate the leaf using a network which outputs a list of (action, probability)
         # tuples p and also a score v in [-1, 1] for the current player.
         action_probs, leaf_value = self._policy(state)
         # Check for end of game.
-        end, winner = state.is_game_end()
+        end, winner = state.isGameEnd()
         if not end:
             node.expand(action_probs)
         else:
@@ -123,7 +123,7 @@ class MCTS(object):
             if winner == -1:  # tie
                 leaf_value = 0.0
             else:
-                leaf_value = 1.0 if winner == state.get_current_player() else -1.0
+                leaf_value = 1.0 if winner == state.getCurrentPlayer() else -1.0
 
         # Update value and visit count of nodes in this traversal遍历.recursive递归
         node.update_recursive(-leaf_value)
@@ -189,7 +189,7 @@ class AlphaZeroPlayer(object):
                 move = np.random.choice(acts, p=probs)       
                 # reset the root node
                 self.mcts.update_with_move(-1)             
-                location = board.move_to_location(move)
+                location = board.move2coordinate(move)
                 print("ZeroPlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
                 
             if return_prob:

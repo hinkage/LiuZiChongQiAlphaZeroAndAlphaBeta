@@ -23,7 +23,7 @@ class Texture(object):
     """Texture either loaded from a file or initialised with random colors."""
     def __init__(self):
         self.xSize, self.ySize = 0, 0
-        self.rawRefence = None
+        self.rawReference = None
 
 
 class RandomTexture(Texture):
@@ -42,22 +42,37 @@ class FileTexture(Texture):
         im = Image.open(fileName)
         self.xSize = im.size[0]
         self.ySize = im.size[1]
-        self.rawReference = numpy.array(list(im.getdata()), numpy.uint8)
-        plt.imshow(im)
-        plt.show()
+        # self.rawReference = numpy.array(list(im.getdata()), numpy.uint8) # 图形是黑白的且模糊不正确
+        # tostring() has been removed. Please call tobytes() instead.
+        self.rawReference = im.tobytes("raw", "RGB", 0, -1)
+        textureId = glGenTextures(1)
+        # Make our new texture ID the current 2D texture
+        glBindTexture(GL_TEXTURE_2D, textureId)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        # Copy the texture data into the current texture ID
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.xSize, self.ySize, 0,
+                     GL_RGB, GL_UNSIGNED_BYTE, self.rawReference)
+        # Configure the texture rendering parameters
+        glEnable(GL_TEXTURE_2D)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glEnable(GL_TEXTURE_2D)
+        # Re-select our texture, could use other generated textures if we had generated them earlier...
+        glBindTexture(GL_TEXTURE_2D, textureId)
+
 
 def display():
     """Glut display function."""
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glColor3f(1, 1, 1)
     glBegin(GL_QUADS)
-    glTexCoord2f(0.0, 1 - 0.0)
+    glTexCoord2f(0.0, 0.0)
     glVertex2f(0.0, 0.0)
-    glTexCoord2f(1.0, 1 - 0.0)
+    glTexCoord2f(1.0, 0.0)
     glVertex2f(250.0, 0.0)
-    glTexCoord2f(1.0, 1 - 1.0)
+    glTexCoord2f(1.0, 1.0)
     glVertex2f(250.0, 250.0)
-    glTexCoord2f(0.0, 1 - 1.0)
+    glTexCoord2f(0.0, 1.0)
     glVertex2f(0.0, 250.0)
     glEnd()
     glutSwapBuffers()
@@ -66,19 +81,10 @@ def display():
 def init(fileName):
     """Glut init function."""
     try:
-        texture = FileTexture(fileName)
-    except:
-        print('could not open', fileName, '; using random texture')
-        texture = RandomTexture(256, 256)
-    glClearColor(0, 0, 0, 0)
-    glShadeModel(GL_SMOOTH)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.xSize, texture.ySize, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, texture.rawReference)
-    glEnable(GL_TEXTURE_2D)
+        FileTexture(fileName)
+    except Exception as e:
+        print(e, 'could not open', fileName, '; using random texture')
+        RandomTexture(256, 256)
 
 
 glutInit(sys.argv)
@@ -90,6 +96,6 @@ gluOrtho2D(0.0, 250, 0.0, 250)  # 定义剪裁面
 if len(sys.argv) > 1:
     init(sys.argv[1])
 else:
-    init('D:/1VSProject/Python/LiuZiChongQiFinal/Demo/timg.jpg')
+    init('timg.jpg')
 glutDisplayFunc(display)
 glutMainLoop()

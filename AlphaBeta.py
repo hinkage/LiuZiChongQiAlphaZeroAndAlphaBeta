@@ -28,7 +28,7 @@ class SearchEngine:
         if depth == self.maxDepth:
             print("")
             pass
-        end, winner = self.board.is_game_end()
+        end, winner = self.board.isGameEnd()
         if end:
             perspective = (self.maxDepth - depth) % 2
             '''if winner == self.cur_type:
@@ -88,7 +88,7 @@ class SearchEngine:
             if depth == self.maxDepth:
                 # print("debug:move is {}".format(move))
                 self.default_move = move
-            self.board.do_move(move)
+            self.board.doMove(move)
             score = -self.AlphaBeta(depth - 1, -beta, -alpha)
             self.board.undo_move()
 
@@ -135,7 +135,7 @@ class AlphaBetaPlayer:
             print("debug:do not have better move")
             best_move = engine.default_move
         if self.is_shown:
-            location = board.move_to_location(best_move)
+            location = board.move2coordinate(best_move)
             print("AlphaBetaPlayer choose action: %d,%d to %d,%d, accessCount: %d\n" % (
                 location[0], location[1], location[2], location[3], engine.accessCount))
             print(engine.action_dict)
