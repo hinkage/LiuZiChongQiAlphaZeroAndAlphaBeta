@@ -62,8 +62,8 @@ class SearchEngine:
 
     def eveluate(self, isCurTypeTurn):
         self.accessCount += 1
-        cur_score = self.board.chess_man_num[self.cur_type] * 10 + len(self.board.getAvailables()) * 1
-        oppo_score = self.board.chess_man_num[
+        cur_score = self.board.chessManCount[self.cur_type] * 10 + len(self.board.getAvailables()) * 1
+        oppo_score = self.board.chessManCount[
                          1 - self.cur_type] * 10  # + len(self.board.getAvailables(1 - self.cur_type)) * 1
         if isCurTypeTurn:
             return oppo_score - cur_score
@@ -118,10 +118,10 @@ class AlphaBetaPlayer:
         self.searchDepth = level
         self.player = None
 
-    def set_player_ind(self, p):
+    def setPlayerIndex(self, p):
         self.player = p
 
-    def get_action(self, board):
+    def getAction(self, board):
         board_copy = copy.deepcopy(board)
         engine = SearchEngine(board_copy, self.player)
         # engine = SearchEngine(board, self.player)

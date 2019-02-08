@@ -17,10 +17,10 @@ class HumanPlayer(object):
     def __init__(self):
         self.player = None
     
-    def set_player_ind(self, p):
+    def setPlayerIndex(self, p):
         self.player = p
 
-    def get_action(self, board):
+    def getAction(self, board):
         try:
             location = input("Your move: ")
             if isinstance(location, str):
@@ -28,9 +28,9 @@ class HumanPlayer(object):
             move = board.coordinate2Move(location)
         except Exception as e:
             move = -1
-        if move == -1 or move not in board.calcSensibleMoves(board.current_player):
+        if move == -1 or move not in board.calcSensibleMoves(board.currentPlayer):
             print("invalid move")
-            move = self.get_action(board)
+            move = self.getAction(board)
         return move
 
     def __str__(self):

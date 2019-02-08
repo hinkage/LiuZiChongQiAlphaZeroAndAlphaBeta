@@ -256,8 +256,8 @@ class Board(object):
             s4 = gBoardStates[-1]
 
             if self.equals(s0):
-                if s0.current_move in lst:
-                    lst.remove(s0.current_move)
+                if s0.currentMove in lst:
+                    lst.remove(s0.currentMove)
                     # print('deleted one item in lst')
                 else:
                     print('g_move_list[-4] is not in lst')
@@ -526,28 +526,28 @@ class Board(object):
 class Game(object):
     def __init__(self, board, **kwargs):
         self.board = board
-        self.board_lines = 4  # 棋盘的横纵方向的线条数,横纵都是相等数量的
-        self.board_interval = 100  # 棋盘线条之间的间距值
+        self.boardLineCount = 4  # 棋盘的横纵方向的线条数,横纵都是相等数量的
+        self.boardInterval = 100  # 棋盘线条之间的间距值
         self.buttonAreaHeight = 100  # 按钮区域的高度
-        self.window_w = self.board_lines * self.board_interval  # 窗口的宽度
-        self.window_h = self.board_lines * self.board_interval + self.buttonAreaHeight  # 窗口的高度
-        self.piece_radius = self.board_interval * 3 / 10  # 棋子的半径
+        self.windowWidth = self.boardLineCount * self.boardInterval  # 窗口的宽度
+        self.windowHeight = self.boardLineCount * self.boardInterval + self.buttonAreaHeight  # 窗口的高度
+        self.pieceRadius = self.boardInterval * 3 / 10  # 棋子的半径
         self.is_selected = False  # 当前是否有棋子被选中
-        self.cur_selected_x = -1  # 当前选中棋子的横坐标
-        self.cur_selected_y = -1  # 当前选中棋子的纵坐标
-        self.has_human_moved = False  # 人类棋手是否已经走子
+        self.currentSelectedX = -1  # 当前选中棋子的横坐标
+        self.currentSelectedY = -1  # 当前选中棋子的纵坐标
+        self.hasHumanMoved = False  # 人类棋手是否已经走子
 
     def graphic(self, board, player1, player2):
         # os.system("cls")
         print("Player", player1, "with O")
         print("Player", player2, "with X")
-        for x in range(self.board_lines):
+        for x in range(self.boardLineCount):
             print("{0:8}".format(x), end='')
         print('\r\n')
-        for i in range(self.board_lines - 1, -1, -1):
+        for i in range(self.boardLineCount - 1, -1, -1):
             print("{0:4d}".format(i), end='')
-            for j in range(self.board_lines):
-                loc = i * self.board_lines + j
+            for j in range(self.boardLineCount):
+                loc = i * self.boardLineCount + j
                 p = board.states.get(loc)
                 if p == player1:
                     print('O'.center(8), end='')
@@ -560,13 +560,13 @@ class Game(object):
     def startSelfPlay(self, player, is_shown=1, temp=1e-3):
         self.board.initBoard()  # 重新初始化所有棋盘信息
         p1, p2 = self.board.players
-        states, mcts_probs, current_players = [], [], []
+        states, mcts_probs, currentPlayers = [], [], []
         while True:
             move, move_probs = player.getAction(self.board, temp=temp, return_prob=1)
             # store the data
             states.append(self.board.current_state())
             mcts_probs.append(move_probs)
-            current_players.append(self.board.current_player)
+            currentPlayers.append(self.board.currentPlayer)
             # perform a move
             self.board.doMove(move)
             if is_shown:
@@ -574,12 +574,12 @@ class Game(object):
             end, winner = self.board.isGameEnd()
             if end:
                 # winner from the  perspective of the current player of each state
-                winners_z = np.zeros(len(current_players))
+                winners_z = np.zeros(len(currentPlayers))
                 if winner != -1:
-                    winners_z[np.array(current_players) == winner] = 1.0
-                    winners_z[np.array(current_players) != winner] = -1.0
+                    winners_z[np.array(currentPlayers) == winner] = 1.0
+                    winners_z[np.array(currentPlayers) != winner] = -1.0
                 # reset MCTS root node
-                player.reset_player()
+                player.resetPlayer()
                 if is_shown:
                     if winner != -1:
                         print("Game end. Winner is player: ", winner)
@@ -601,9 +601,9 @@ class Game(object):
         if is_shown:
             self.graphic(self.board, player1.player, player2.player)
         while (1):
-            current_player = self.board.getCurrentPlayer()
-            player_in_turn = players[current_player]
-            move = player_in_turn.get_action(self.board)
+            currentPlayer = self.board.getCurrentPlayer()
+            player_in_turn = players[currentPlayer]
+            move = player_in_turn.getAction(self.board)
 
             self.board.doMove(move)
             if is_shown:

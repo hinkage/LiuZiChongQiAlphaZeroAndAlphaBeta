@@ -50,10 +50,9 @@ class FileTexture(Texture):
         glBindTexture(GL_TEXTURE_2D, textureId)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
         # Copy the texture data into the current texture ID
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.xSize, self.ySize, 0,
-                     GL_RGB, GL_UNSIGNED_BYTE, self.rawReference)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.xSize, self.ySize,
+                                    0, GL_RGB, GL_UNSIGNED_BYTE, self.rawReference)
         # Configure the texture rendering parameters
-        glEnable(GL_TEXTURE_2D)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glEnable(GL_TEXTURE_2D)

@@ -167,13 +167,13 @@ class AlphaZeroPlayer(object):
         self.mcts = MCTS(policy_value_function, c_puct, n_playout)
         self._is_selfplay = is_selfplay
     
-    def set_player_ind(self, p):
+    def setPlayerIndex(self, p):
         self.player = p
 
-    def reset_player(self):
+    def resetPlayer(self):
         self.mcts.update_with_move(-1) 
 
-    def get_action(self, board, temp=1e-3, return_prob=0):
+    def getAction(self, board, temp=1e-3, return_prob=0):
         sensible_moves = board.getAvailables()
         move_probs = np.zeros(board.width * board.height * 4)
         # the pi vector returned by MCTS as in the alphaGo Zero paper

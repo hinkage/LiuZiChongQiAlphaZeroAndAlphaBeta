@@ -19,22 +19,22 @@ class HumanPlayer(object):
     def __init__(self):
         self.player = None
     
-    def set_player_ind(self, p):
+    def setPlayerIndex(self, p):
         self.player = p
 
-    def get_action(self, board):
+    def getAction(self, board):
         global move
-        while game.has_human_moved == False:
+        while game.hasHumanMoved == False:
             pass
 
-        if move == -1 or move not in board.calcSensibleMoves(board.current_player):
+        if move == -1 or move not in board.calcSensibleMoves(board.currentPlayer):
             print("invalid move")
-            move = self.get_action(board)
+            move = self.getAction(board)
 
         location = board.move2coordinate(move)
         print("HumanPlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
 
-        game.has_human_moved = False
+        game.hasHumanMoved = False
         return move
 
     def __str__(self):
@@ -42,34 +42,34 @@ class HumanPlayer(object):
 
 def MapCoordinate(x, y, lst):
     #使用list以进行引用传递，lst[0]对应xa，lst[1]对应ya
-    lst[0] = (x - game.board_interval / 2.0) / game.board_interval
-    lst[1] = (y - game.board_interval / 2.0) / game.board_interval
+    lst[0] = (x - game.boardInterval / 2.0) / game.boardInterval
+    lst[1] = (y - game.boardInterval / 2.0) / game.boardInterval
     lst[0] = int(lst[0])
     lst[1] = int(lst[1])
-    xt = lst[0] * game.board_interval + game.board_interval / 2
-    if xt - game.piece_radius <= x and x <= xt + game.piece_radius:
-        yt = lst[1] * game.board_interval + game.board_interval / 2;
-        if yt - game.piece_radius <= y and y <= yt + game.piece_radius:
-            lst[1] = game.board_lines - 1 - lst[1]
+    xt = lst[0] * game.boardInterval + game.boardInterval / 2
+    if xt - game.pieceRadius <= x and x <= xt + game.pieceRadius:
+        yt = lst[1] * game.boardInterval + game.boardInterval / 2;
+        if yt - game.pieceRadius <= y and y <= yt + game.pieceRadius:
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
-        yt = (1 + lst[1]) * game.board_interval + game.board_interval / 2
-        if yt - game.piece_radius <= y and y <= yt + game.piece_radius:
+        yt = (1 + lst[1]) * game.boardInterval + game.boardInterval / 2
+        if yt - game.pieceRadius <= y and y <= yt + game.pieceRadius:
             lst[1] = lst[1] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
         return False
-    xt = (lst[0] + 1) * game.board_interval + game.board_interval / 2
-    if xt - game.piece_radius <= x and x <= xt + game.piece_radius:
-        yt = lst[1] * game.board_interval + game.board_interval / 2;
-        if yt - game.piece_radius <= y and y <= yt + game.piece_radius:
+    xt = (lst[0] + 1) * game.boardInterval + game.boardInterval / 2
+    if xt - game.pieceRadius <= x and x <= xt + game.pieceRadius:
+        yt = lst[1] * game.boardInterval + game.boardInterval / 2;
+        if yt - game.pieceRadius <= y and y <= yt + game.pieceRadius:
             lst[0] = lst[0] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
-        yt = (1 + lst[1]) * game.board_interval + game.board_interval / 2
-        if yt - game.piece_radius <= y and y <= yt + game.piece_radius:
+        yt = (1 + lst[1]) * game.boardInterval + game.boardInterval / 2
+        if yt - game.pieceRadius <= y and y <= yt + game.pieceRadius:
             lst[0] = lst[0] + 1
             lst[1] = lst[1] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
         return False
     return False

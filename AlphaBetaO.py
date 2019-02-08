@@ -29,8 +29,8 @@ class SearchEngine:
 
     def eveluate(self):
         self.accessCount += 1        
-        cur_score = self.board.chess_man_num[self.cur_type] * 10 + len(self.board.getAvailables()) * 1        
-        oppo_score = self.board.chess_man_num[1 - self.cur_type] * 10
+        cur_score = self.board.chessManCount[self.cur_type] * 10 + len(self.board.getAvailables()) * 1
+        oppo_score = self.board.chessManCount[1 - self.cur_type] * 10
         return cur_score - oppo_score
     
     def AlphaBeta(self, depth, alpha, beta):
@@ -134,10 +134,10 @@ class AlphaBetaPlayer:
         self.is_shown = True
         self.searchDepth=level
 
-    def set_player_ind(self, p):
+    def setPlayerIndex(self, p):
         self.player = p
 
-    def get_action(self, board):
+    def getAction(self, board):
         board_copy = copy.deepcopy(board)
         engine = SearchEngine(board_copy, self.player)
         # engine = SearchEngine(board, self.player)

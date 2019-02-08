@@ -83,7 +83,7 @@ class PolicyValueNetNumpy():
         input: board
         output: a list of (action, probability) tuples for each available action and the score of the board state
         """
-        board.availables = board.calcSensibleMoves(board.current_player)
+        board.availables = board.calcSensibleMoves(board.currentPlayer)
         legal_positions = board.availables
         current_state = board.current_state()
         

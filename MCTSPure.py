@@ -184,13 +184,13 @@ class MCTSPurePlayer(object):
         self.mcts = MCTS(policy_value_fn, c_puct, n_playout)
         self.is_shown = True
 
-    def set_player_ind(self, p):
+    def setPlayerIndex(self, p):
         self.player = p
 
-    def reset_player(self):
+    def resetPlayer(self):
         self.mcts.update_with_move(-1)
 
-    def get_action(self, board):
+    def getAction(self, board):
         sensible_moves = board.getAvailables()
         if len(sensible_moves) > 0:
             move = self.mcts.get_move(board)

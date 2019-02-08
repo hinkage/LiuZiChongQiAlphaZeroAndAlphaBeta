@@ -9,7 +9,6 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import BoardGL
 from PIL import Image
-import numpy
 
 from AlphaBetaO import AlphaBetaPlayer
 from MCTSPure import MCTSPurePlayer as PurePlayer
@@ -17,10 +16,14 @@ from AlphaZero import AlphaZeroPlayer as ZeroPlayer
 from policy_value_net import PolicyValueNet
 
 board = None
-game = None
+game:BoardGL.Game = None
 move = None
-textureIdDict:dict = {}
+# 实际测试发现,从其它文件import如下dict变量时,只能获取到其静态设置的值,而无法获取到运行时动态添加的那些值
+# 可见导入的根本不是同一个对象
+textureIdDict:dict = {'nextt':2}
+buttons:list = []
 
+import Button
 
 class HumanPlayer(object):
     def __init__(self):
@@ -34,20 +37,20 @@ class HumanPlayer(object):
         """
         self.player = p
 
-    def getAction(self, board:BoardGL.Board):
+    def getAction(self, board: BoardGL.Board):
         global move
-        while not game.has_human_moved:
+        while not game.hasHumanMoved:
             pass
 
         if move == -1 or move not in board.calcSensibleMoves(board.currentPlayer):
             print("invalid move: %s" % move)
-            game.has_human_moved = False
+            game.hasHumanMoved = False
             move = self.getAction(board)
 
         location = board.move2coordinate(move)
         print("HumanPlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
 
-        game.has_human_moved = False
+        game.hasHumanMoved = False
         return move
 
     def __str__(self):
@@ -63,76 +66,85 @@ def mapCoordinate(x, y, lst):
     :return:
     """
     # 使用list以进行引用传递，lst[0]对应xa，lst[1]对应ya
-    lst[0] = (x - game.board_interval / 2.0) / game.board_interval
-    lst[1] = (y - game.board_interval / 2.0) / game.board_interval
+    lst[0] = (x - game.boardInterval / 2.0) / game.boardInterval
+    lst[1] = (y - game.boardInterval / 2.0) / game.boardInterval
     lst[0] = int(lst[0])
     lst[1] = int(lst[1])
-    xt = lst[0] * game.board_interval + game.board_interval / 2
-    if xt - game.piece_radius <= x <= xt + game.piece_radius:
-        yt = lst[1] * game.board_interval + game.board_interval / 2;
-        if yt - game.piece_radius <= y <= yt + game.piece_radius:
-            lst[1] = game.board_lines - 1 - lst[1]
+    xt = lst[0] * game.boardInterval + game.boardInterval / 2
+    if xt - game.pieceRadius <= x <= xt + game.pieceRadius:
+        yt = lst[1] * game.boardInterval + game.boardInterval / 2;
+        if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
-        yt = (1 + lst[1]) * game.board_interval + game.board_interval / 2
-        if yt - game.piece_radius <= y <= yt + game.piece_radius:
+        yt = (1 + lst[1]) * game.boardInterval + game.boardInterval / 2
+        if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
             lst[1] = lst[1] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
         return False
-    xt = (lst[0] + 1) * game.board_interval + game.board_interval / 2
-    if xt - game.piece_radius <= x <= xt + game.piece_radius:
-        yt = lst[1] * game.board_interval + game.board_interval / 2;
-        if yt - game.piece_radius <= y <= yt + game.piece_radius:
+    xt = (lst[0] + 1) * game.boardInterval + game.boardInterval / 2
+    if xt - game.pieceRadius <= x <= xt + game.pieceRadius:
+        yt = lst[1] * game.boardInterval + game.boardInterval / 2;
+        if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
             lst[0] = lst[0] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
-        yt = (1 + lst[1]) * game.board_interval + game.board_interval / 2
-        if yt - game.piece_radius <= y <= yt + game.piece_radius:
+        yt = (1 + lst[1]) * game.boardInterval + game.boardInterval / 2
+        if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
             lst[0] = lst[0] + 1
             lst[1] = lst[1] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
         return False
     return False
 
 
-def mouseFunction(button, state, x, y):
+def mouseFunction(mouseButton, state, x, y):
     """
     OpenGL的鼠标事件监听回调函数.鼠标坐标的原点在左上角.
-    :param button:左键,中键,右键
+    :param mouseButton:左键,中键,右键
     :param state:按下,弹起
     :param x:横坐标
     :param y:纵坐标
     :return:无
     """
-    lst = [-1, -1]  # [棋盘x坐标,棋盘y坐标]
-    if button == GLUT_LEFT_BUTTON:  # 如果是左键
-        if state == GLUT_DOWN:  # 如果是按下
-            if mapCoordinate(x, y, lst):  # 将屏幕坐标x,y映射为棋盘4*4坐标
-                xa = int(lst[0])
-                ya = int(lst[1])
-                if game.board.states[ya * game.board.width + xa] != -1:  # 如果棋盘坐标对应位置不是空白的
-                    if game.board.states[ya * game.board.width + xa] == game.board.current_player:  # 0黑1白
-                        game.cur_selected_x = xa  # 当前选中棋子的x坐标
-                        game.cur_selected_y = ya  # 当前选中棋子的y坐标
-                        game.is_selected = True  # 棋盘中已有棋子被选中
-                else:  # 如果棋盘坐标对应位置是空白的
-                    if game.is_selected:  # 如果棋盘中已有棋子被选中
-                        global move  # 移动方式的数字表示
-                        if xa - game.cur_selected_x == 1:  # 如果当前点击的空白点离被选中棋子横向距离为1
-                            move = (game.cur_selected_y * game.board.width + game.cur_selected_x) * 4 + 0
-                        elif ya - game.cur_selected_y == -1:
-                            move = (game.cur_selected_y * game.board.width + game.cur_selected_x) * 4 + 1
-                        elif xa - game.cur_selected_x == -1:
-                            move = (game.cur_selected_y * game.board.width + game.cur_selected_x) * 4 + 2
-                        elif ya - game.cur_selected_y == 1:
-                            move = (game.cur_selected_y * game.board.width + game.cur_selected_x) * 4 + 3
 
-                        game.has_human_moved = True  # 标识人类棋手已经移动过了
-                        while game.has_human_moved:
-                            pass
-                        # game.board.doMove(move)
-                        game.is_selected = False
+
+    lst = [-1, -1]  # [棋盘x坐标,棋盘y坐标]
+    if mouseButton == GLUT_LEFT_BUTTON:  # 如果是左键
+        if state == GLUT_DOWN:  # 如果是按下
+            # 把坐标值传递给回调函数
+            global buttons
+            button:Button.Button
+            for button in buttons:
+                button.click(x, game.windowHeight - y)
+
+            if mapCoordinate(x, y, lst):  # 将屏幕坐标x,y映射为棋盘4*4坐标
+                if (lst[0] >= 0 and lst[1] >= 0): # 如果不加此条件,则数组取值下标为负数时会抛出异常导致opengl报错
+                    xa = int(lst[0])
+                    ya = int(lst[1])
+                    if game.board.states[ya * game.board.width + xa] != -1:  # 如果棋盘坐标对应位置不是空白的
+                        if game.board.states[ya * game.board.width + xa] == game.board.currentPlayer:  # 0黑1白
+                            game.currentSelectedX = xa  # 当前选中棋子的x坐标
+                            game.currentSelectedY = ya  # 当前选中棋子的y坐标
+                            game.is_selected = True  # 棋盘中已有棋子被选中
+                    else:  # 如果棋盘坐标对应位置是空白的
+                        if game.is_selected:  # 如果棋盘中已有棋子被选中
+                            global move  # 移动方式的数字表示
+                            if xa - game.currentSelectedX == 1:  # 如果当前点击的空白点离被选中棋子横向距离为1
+                                move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 0
+                            elif ya - game.currentSelectedY == -1:
+                                move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 1
+                            elif xa - game.currentSelectedX == -1:
+                                move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 2
+                            elif ya - game.currentSelectedY == 1:
+                                move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 3
+
+                            game.hasHumanMoved = True  # 标识人类棋手已经移动过了
+                            while game.hasHumanMoved:
+                                pass
+                            # game.board.doMove(move)
+                            game.is_selected = False
 
 
 def keyboardFunction(key, x, y):
@@ -150,15 +162,15 @@ def drawChessBoard():
     glBegin(GL_LINES)
     glColor3f(0.0, 0.0, 0.0)
 
-    halfInterval = game.board_interval / 2.0
+    halfInterval = game.boardInterval / 2.0
     # 绘制竖线,纵坐标一致,横坐标递增
-    for i in range(game.board_lines):
-        glVertex2f(halfInterval + i * game.board_interval, halfInterval + game.buttonAreaHeight)
-        glVertex2f(halfInterval + i * game.board_interval, game.window_h - halfInterval)
+    for i in range(game.boardLineCount):
+        glVertex2f(halfInterval + i * game.boardInterval, halfInterval + game.buttonAreaHeight)
+        glVertex2f(halfInterval + i * game.boardInterval, game.windowHeight - halfInterval)
     # 绘制横线,纵坐标一致,横坐标递增
-    for i in range(game.board_lines):
-        glVertex2f(halfInterval, halfInterval + i * game.board_interval + game.buttonAreaHeight)
-        glVertex2f(game.window_w - halfInterval, halfInterval + i * game.board_interval + game.buttonAreaHeight)
+    for i in range(game.boardLineCount):
+        glVertex2f(halfInterval, halfInterval + i * game.boardInterval + game.buttonAreaHeight)
+        glVertex2f(game.windowWidth - halfInterval, halfInterval + i * game.boardInterval + game.buttonAreaHeight)
 
     glEnd()
 
@@ -184,55 +196,59 @@ def drawAllPieces():
     :return:
     """
     # 以左下角为原点,x为横坐标,y为纵坐标
-    for y in range(game.board_lines):
-        for x in range(game.board_lines):
+    for y in range(game.boardLineCount):
+        for x in range(game.boardLineCount):
             if game.board.states[y * game.board.width + x] != -1:
-                drawOnePieces(x * game.board_interval + game.board_interval / 2,
-                              y * game.board_interval + game.board_interval / 2 + game.buttonAreaHeight,
-                              game.piece_radius, game.board.states[y * game.board.width + x])
+                drawOnePieces(x * game.boardInterval + game.boardInterval / 2,
+                              y * game.boardInterval + game.boardInterval / 2 + game.buttonAreaHeight,
+                              game.pieceRadius, game.board.states[y * game.board.width + x])
 
 
-def createTexture(filepath):
+def createAndPutTexture(filepath, key:str):
     """
+    参考: http://pyopengl.sourceforge.net/context/tutorials/nehe6.html
     添加一个纹理到全局纹理字典textureIdDict中去
     :param filepath: 纹理的图片资源文件路径
     :return: 纹理的id
     """
+    global textureIdDict
     try:
-        image:Image.Image = Image.open(filepath)
+        image: Image.Image = Image.open(filepath)
     except IOError as e:
         print(e, "加载纹理资源图片出错")
     # tostring() has been removed. Please call tobytes() instead.
-    # 参数0暂时不明白是什么含义,参数1则纹理正常,-1则镜像翻转,实际测试发现设为-1可正常显示纹理
+    # 参数0暂时不明白是什么含义,参数1则纹理正常,-1则镜像翻转,实际测试发现设为-1可正常显示纹理.参考: https://gist.github.com/binarycrusader/5823716a1da5f0273504
     imageData = image.tobytes("raw", "RGB", 0, -1)
-
+    # 生成一个纹理id
     textureId = glGenTextures(1)
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4)
+    # Make our new texture ID the current 2D texture
+    # 如果这里不先bind,则glTexImage2D也无法正常工作,会导致纹理为一片空白
     glBindTexture(GL_TEXTURE_2D, textureId)
-    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0)
-    # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.size[0],
-                 image.size[1], 0, GL_RGB, GL_UNSIGNED_BYTE,
-                 imageData)
+    # glPixelStorei(GL_UNPACK_ALIGNMENT,1)控制的是所读取数据的对齐方式，默认4字节对齐
+    # 实际测试发现,若使用默认值4不会报错但是显示效果不正确,而设为1则可正常显示
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+    # Copy the texture data into the current texture ID
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.size[0], image.size[1],
+                                0, GL_RGB, GL_UNSIGNED_BYTE, imageData)
+    # Configure the texture rendering parameters
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+    # 添加到字典
+    textureIdDict[key] = textureId
+    # 关闭资源并返回纹理id
     image.close()
     return textureId
 
 
 def drawButtons():
-    global textureIdDict, game
-    glBegin(GL_QUADS)
-    glTexCoord2f(0.0, 0.0)
-    glVertex2f(50.0, 50.0)
-    glTexCoord2f(1.0, 0.0)
-    glVertex2f(100.0, 50.0)
-    glTexCoord2f(1.0, 1.0)
-    glVertex2f(100.0, 100.0)
-    glTexCoord2f(0.0, 1.0)
-    glVertex2f(50.0, 100.0)
-    glEnd()
+    global buttons
+    button:Button = None
+    for button in buttons:
+        button.render()
 
 
 def displayFunction():
+    # 把整个窗口清除为当前的清除颜色
     glClear(GL_COLOR_BUFFER_BIT)
 
     drawChessBoard()
@@ -246,10 +262,19 @@ def idleFunction():
     glutPostRedisplay()
 
 
-def mainLoop():
+def openglManLoop():
+    """
+    opengl的启动函数
+    :return:
+    """
     glutInit(sys.argv)
+    """
+    设置初始显示模式:
+    GLUT_SINGLE	0x0000	指定单缓存窗口
+    GLUT_RGB	0x0000	指定RGB颜色模式的窗口
+    """
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
-    glutInitWindowSize(game.window_w, game.window_h)  # 窗口尺寸
+    glutInitWindowSize(game.windowWidth, game.windowHeight)  # 窗口尺寸
     glutInitWindowPosition(0, 0)  # 窗口位置
     glutCreateWindow("OpenGL LiuZiChong")  # 窗口标题
 
@@ -263,16 +288,20 @@ def mainLoop():
     glLineWidth(2.0)  # 线条宽度
     glMatrixMode(GL_PROJECTION)  # 投影
     glLoadIdentity()  # 单位矩阵
-    gluOrtho2D(0.0, game.window_w, 0.0, game.window_h)  # 定义剪裁面
+    gluOrtho2D(0.0, game.windowWidth, 0.0, game.windowHeight)  # 定义剪裁面
     # init()
     # 加载texture
     glEnable(GL_TEXTURE_2D)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-    global textureIdDict
-    textureIdDict['next'] = createTexture('asset/next.bmp')
+    createAndPutTexture('asset/next.bmp', 'next')
+    createAndPutTexture('asset/pre.bmp', 'pre')
+    # 创建添加button
+    global buttons, textureIdDict
+    nextBtn = Button.Button(60, 50, 110, 100, textureIdDict['next'])
+    nextBtn.setOnClickListener(lambda : print("next按钮被点击"))
+    buttons.append(nextBtn)
+    preBtn = Button.Button(5, 50, 55, 100, textureIdDict['pre'])
+    preBtn.setOnClickListener(lambda : print('pre按钮被点击'))
+    buttons.append(preBtn)
     glutMainLoop()  # 死循环
 
 
@@ -282,7 +311,7 @@ def uiThread():
     board.initBoard()
     global game
     game = BoardGL.Game(board)
-    _thread.start_new_thread(mainLoop, ())
+    _thread.start_new_thread(openglManLoop, ())
 
 
 def updateBoard(brd=None):
@@ -335,7 +364,8 @@ def run():
             # game.startPlay(pure_player, pure_player1, startPlayer=0, is_shown=1)
             # game.startPlay(pure_player, alphabeta_player, startPlayer=0, is_shown=1) # 后手8层5子对0子胜mcts3000
             # game.startPlay(alphabeta_player, pure_player, startPlayer=0, is_shown=1) # 先手8层5子对0子胜mcts3000
-            game.startPlay(alphabeta_player, human_player, startPlayer=0, is_shown=1)  # 用zero的走法，我战胜了AlphaBeta，但是测试到后面，黑方00->01无中生有一颗黑子，可见代码还有bug
+            game.startPlay(alphabeta_player, human_player, startPlayer=0,
+                           is_shown=1)  # 用zero的走法，我战胜了AlphaBeta，但是测试到后面，黑方00->01无中生有一颗黑子，可见代码还有bug
             # game.startPlay(human_player, alphabeta_player, startPlayer=0, is_shown=1)  # 执黑4对0战胜AlphaBeta9，难道程序有bug？
             # game.startPlay(alphabeta_player, alphabeta_player1, startPlayer=0, is_shown=1)  #开局就死循环
             # game.startPlay(zero_player, alphabeta_player, startPlayer=0, is_shown=1)  # zero500腾讯云训练1000局胜mcts1000，然而以1子对5子惨败AlphaBeta9。zero_txy500_？？？局先手以4-5子战平。；zero500训练2000盘后，先手以4子对5子和。

@@ -7,107 +7,12 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 # 导入棋盘
-from BoardGL import Board
+from BoardGL import *
 
 # 全局变量声明
-board = None
-game = None
+board:Board = None
+game:Game = None
 move = None
-
-
-class Game(object):
-    def __init__(self, board, **kwargs):
-        self.board = board
-        self.board_lines = 4
-        self.board_interval = 100
-        self.window_w = self.board_lines * self.board_interval
-        self.window_h = self.board_lines * self.board_interval
-        self.piece_radius = self.board_interval * 3 / 10
-        self.is_selected = False
-        self.cur_selected_x = -1
-        self.cur_selected_y = -1
-        self.has_human_moved = False
-
-    def graphic(self, board, player1, player2):
-        # os.system("cls")
-        print("Player", player1, "with O")
-        print("Player", player2, "with X")
-        for x in range(self.board_lines):
-            print("{0:8}".format(x), end='')
-        print('\r\n')
-        for i in range(self.board_lines - 1, -1, -1):
-            print("{0:4d}".format(i), end='')
-            for j in range(self.board_lines):
-                loc = i * self.board_lines + j
-                p = board.states.get(loc)
-                if p == player1:
-                    print('O'.center(8), end='')
-                elif p == player2:
-                    print('X'.center(8), end='')
-                else:
-                    print('_'.center(8), end='')
-            print('\r\n\r\n')
-
-    def start_self_play(self, player, is_shown=1, temp=1e-3):
-        self.board.initBoard()  # 重新初始化所有棋盘信息
-        p1, p2 = self.board.players
-        states, mcts_probs, current_players = [], [], []
-        while True:
-            move, move_probs = player.getAction(self.board, temp=temp, return_prob=1)
-            # store the data
-            states.append(self.board.current_state())
-            mcts_probs.append(move_probs)
-            current_players.append(self.board.current_player)
-            # perform a move
-            self.board.doMove(move)
-            if is_shown:
-                self.graphic(self.board, p1, p2)
-            end, winner = self.board.isGameEnd()
-            if end:
-                # winner from the  perspective of the current player of each state
-                winners_z = np.zeros(len(current_players))
-                if winner != -1:
-                    winners_z[np.array(current_players) == winner] = 1.0
-                    winners_z[np.array(current_players) != winner] = -1.0
-                # reset MCTS root node
-                player.reset_player()
-                if is_shown:
-                    if winner != -1:
-                        print("Game end. Winner is player: ", winner)
-                    else:
-                        print("Game end. Tie")
-                return winner, zip(states, mcts_probs, winners_z)
-
-    def start_play(self, player1, player2, start_player=0, is_shown=1):
-        """
-        start a game between two players
-        """
-        if start_player not in (0, 1):
-            raise Exception('startPlayer should be 0 (player1 first) or 1 (player2 first)')
-        self.board.initBoard(start_player)  # 重新初始化所有棋盘信息
-        p1, p2 = self.board.players
-        player1.setPlayerIndex(p1)
-        player2.setPlayerIndex(p2)
-        players = {p1: player1, p2: player2}
-        if is_shown:
-            self.graphic(self.board, player1.player, player2.player)
-        while 1:
-            current_player = self.board.getCurrentPlayer()
-            player_in_turn = players[current_player]
-            move = player_in_turn.get_action(self.board)
-            # print("do move:{}".format(move))
-            self.board.doMove(move)
-            if is_shown:
-                self.graphic(self.board, player1.player, player2.player)
-            end, winner = self.board.isGameEnd()
-            if end:
-                if is_shown:
-                    if winner != -1:
-                        print("Game end. Winner is", players[winner])
-                    else:
-                        print("Game end. Tie")
-                return winner
-
 
 class HumanPlayer(object):
     goNext = False
@@ -116,22 +21,22 @@ class HumanPlayer(object):
     def __init__(self):
         self.player = None
 
-    def set_player_ind(self, p):
+    def setPlayerIndex(self, p):
         self.player = p
 
-    def get_action(self, board):
+    def getAction(self, board):
         global move
-        while not game.has_human_moved:
+        while not game.hasHumanMoved:
             pass
 
-        if move == -1 or move not in board.calcSensibleMoves(board.current_player):
+        if move == -1 or move not in board.calcSensibleMoves(board.currentPlayer):
             print("invalid move")
-            move = self.get_action(board)
+            move = self.getAction(board)
 
         location = board.move2coordinate(move)
         print("HumanPlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
 
-        game.has_human_moved = False
+        game.hasHumanMoved = False
         return move
 
     def __str__(self):
@@ -147,34 +52,34 @@ def map_coordinate(x, y, lst):
     :return:
     """
     # 使用list以进行引用传递，lst[0]对应xa，lst[1]对应ya
-    lst[0] = (x - game.board_interval / 2.0) / game.board_interval
-    lst[1] = (y - game.board_interval / 2.0) / game.board_interval
+    lst[0] = (x - game.boardInterval / 2.0) / game.boardInterval
+    lst[1] = (y - game.boardInterval / 2.0) / game.boardInterval
     lst[0] = int(lst[0])
     lst[1] = int(lst[1])
-    xt = lst[0] * game.board_interval + game.board_interval / 2
-    if xt - game.piece_radius <= x <= xt + game.piece_radius:
-        yt = lst[1] * game.board_interval + game.board_interval / 2
-        if yt - game.piece_radius <= y <= yt + game.piece_radius:
-            lst[1] = game.board_lines - 1 - lst[1]
+    xt = lst[0] * game.boardInterval + game.boardInterval / 2
+    if xt - game.pieceRadius <= x <= xt + game.pieceRadius:
+        yt = lst[1] * game.boardInterval + game.boardInterval / 2
+        if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
-        yt = (1 + lst[1]) * game.board_interval + game.board_interval / 2
-        if yt - game.piece_radius <= y <= yt + game.piece_radius:
+        yt = (1 + lst[1]) * game.boardInterval + game.boardInterval / 2
+        if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
             lst[1] = lst[1] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
         return False
-    xt = (lst[0] + 1) * game.board_interval + game.board_interval / 2
-    if xt - game.piece_radius <= x <= xt + game.piece_radius:
-        yt = lst[1] * game.board_interval + game.board_interval / 2
-        if yt - game.piece_radius <= y <= yt + game.piece_radius:
+    xt = (lst[0] + 1) * game.boardInterval + game.boardInterval / 2
+    if xt - game.pieceRadius <= x <= xt + game.pieceRadius:
+        yt = lst[1] * game.boardInterval + game.boardInterval / 2
+        if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
             lst[0] = lst[0] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
-        yt = (1 + lst[1]) * game.board_interval + game.board_interval / 2
-        if yt - game.piece_radius <= y <= yt + game.piece_radius:
+        yt = (1 + lst[1]) * game.boardInterval + game.boardInterval / 2
+        if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
             lst[0] = lst[0] + 1
             lst[1] = lst[1] + 1
-            lst[1] = game.board_lines - 1 - lst[1]
+            lst[1] = game.boardLineCount - 1 - lst[1]
             return True
         return False
     return False
@@ -197,24 +102,24 @@ def mouse_func(button, state, x, y):
                 xa = int(lst[0])
                 ya = int(lst[1])
                 if game.board.states[ya * game.board.width + xa] != -1:
-                    if game.board.states[ya * game.board.width + xa] == game.board.current_player:
-                        game.cur_selected_x = xa
-                        game.cur_selected_y = ya
+                    if game.board.states[ya * game.board.width + xa] == game.board.currentPlayer:
+                        game.currentSelectedX = xa
+                        game.currentSelectedY = ya
                         game.is_selected = True
                 else:
                     if game.is_selected:
                         global move
-                        if xa - game.cur_selected_x == 1:
-                            move = (game.cur_selected_y * game.board.width + game.cur_selected_x) * 4 + 0
-                        elif ya - game.cur_selected_y == -1:
-                            move = (game.cur_selected_y * game.board.width + game.cur_selected_x) * 4 + 1
-                        elif xa - game.cur_selected_x == -1:
-                            move = (game.cur_selected_y * game.board.width + game.cur_selected_x) * 4 + 2
-                        elif ya - game.cur_selected_y == 1:
-                            move = (game.cur_selected_y * game.board.width + game.cur_selected_x) * 4 + 3
+                        if xa - game.currentSelectedX == 1:
+                            move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 0
+                        elif ya - game.currentSelectedY == -1:
+                            move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 1
+                        elif xa - game.currentSelectedX == -1:
+                            move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 2
+                        elif ya - game.currentSelectedY == 1:
+                            move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 3
 
-                        game.has_human_moved = True
-                        while game.has_human_moved:
+                        game.hasHumanMoved = True
+                        while game.hasHumanMoved:
                             pass
                         # game.board.doMove(move)
                         game.is_selected = False
@@ -244,14 +149,14 @@ def draw_chess_board():
     glBegin(GL_LINES)
     glColor3f(0.0, 0.0, 0.0)
 
-    convenience = game.board_interval / 2.0
-    for i in range(game.board_lines):
-        glVertex2f(convenience + i * game.board_interval, convenience)
-        glVertex2f(convenience + i * game.board_interval, game.window_h - convenience)
+    convenience = game.boardInterval / 2.0
+    for i in range(game.boardLineCount):
+        glVertex2f(convenience + i * game.boardInterval, convenience)
+        glVertex2f(convenience + i * game.boardInterval, game.windowHeight - convenience)
 
-    for i in range(game.board_lines):
-        glVertex2f(convenience, convenience + i * game.board_interval)
-        glVertex2f(game.window_w - convenience, convenience + i * game.board_interval)
+    for i in range(game.boardLineCount):
+        glVertex2f(convenience, convenience + i * game.boardInterval)
+        glVertex2f(game.windowWidth - convenience, convenience + i * game.boardInterval)
 
     glEnd()
 
@@ -283,12 +188,12 @@ def draw_all_pieces():
     绘制整个棋盘上的棋子
     :return:
     """
-    for i in range(game.board_lines):
-        for j in range(game.board_lines):
+    for i in range(game.boardLineCount):
+        for j in range(game.boardLineCount):
             if game.board.states[i * game.board.width + j] != -1:
-                draw_one_pieces(j * game.board_interval + game.board_interval / 2,
-                                i * game.board_interval + game.board_interval / 2,
-                                game.piece_radius, game.board.states[i * game.board.width + j])
+                draw_one_pieces(j * game.boardInterval + game.boardInterval / 2,
+                                i * game.boardInterval + game.boardInterval / 2,
+                                game.pieceRadius, game.board.states[i * game.board.width + j])
 
 
 def display_func():
@@ -319,7 +224,7 @@ def main_loop():
     """
     glutInit(sys.argv)
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
-    glutInitWindowSize(game.window_w, game.window_h)
+    glutInitWindowSize(game.windowWidth, game.windowHeight)
     glutInitWindowPosition(0, 0)
     glutCreateWindow("OpenGL LiuZiChong")
     # 设置显示函数
@@ -334,7 +239,7 @@ def main_loop():
     glLineWidth(3.0)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    gluOrtho2D(0.0, game.window_w, 0.0, game.window_h)
+    gluOrtho2D(0.0, game.windowWidth, 0.0, game.windowHeight)
     # 进入ui主线程的死循环
     glutMainLoop()
 
