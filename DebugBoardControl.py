@@ -14,34 +14,6 @@ board:Board = None
 game:Game = None
 move = None
 
-class HumanPlayer(object):
-    goNext = False
-    goBack = False
-
-    def __init__(self):
-        self.player = None
-
-    def setPlayerIndex(self, p):
-        self.player = p
-
-    def getAction(self, board):
-        global move
-        while not game.hasHumanMoved:
-            pass
-
-        if move == -1 or move not in board.calcSensibleMoves(board.currentPlayer):
-            print("invalid move")
-            move = self.getAction(board)
-
-        location = board.move2coordinate(move)
-        print("HumanPlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
-
-        game.hasHumanMoved = False
-        return move
-
-    def __str__(self):
-        return "HumanPlayer {}".format(self.player)
-
 
 def map_coordinate(x, y, lst):
     """
