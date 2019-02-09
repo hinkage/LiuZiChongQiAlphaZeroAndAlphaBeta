@@ -25,6 +25,7 @@ buttons:list = []
 
 import Button
 
+
 class HumanPlayer(object):
     def __init__(self):
         self.player = None
@@ -38,7 +39,7 @@ class HumanPlayer(object):
         self.player = p
 
     def getAction(self, board: BoardGL.Board):
-        global move
+        global move, game
         while not game.hasHumanMoved:
             pass
 
