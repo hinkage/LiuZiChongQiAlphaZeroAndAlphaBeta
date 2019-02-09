@@ -14,17 +14,18 @@ from AlphaBetaO import AlphaBetaPlayer
 from MCTSPure import MCTSPurePlayer as PurePlayer
 from AlphaZero import AlphaZeroPlayer as ZeroPlayer
 from policy_value_net import PolicyValueNet
+import Util
+Util.init()
 
 board = None
 game:BoardGL.Game = None
 move = None
 # 实际测试发现,从其它文件import如下dict变量时,只能获取到其静态设置的值,而无法获取到运行时动态添加的那些值
 # 可见导入的根本不是同一个对象
-textureIdDict:dict = {'nextt':2}
+textureIdDict:dict = {}
 buttons:list = []
 
 import Button
-
 
 class HumanPlayer(object):
     def __init__(self):
@@ -39,7 +40,7 @@ class HumanPlayer(object):
         self.player = p
 
     def getAction(self, board: BoardGL.Board):
-        global move, game
+        global move
         while not game.hasHumanMoved:
             pass
 
@@ -149,11 +150,8 @@ def mouseFunction(mouseButton, state, x, y):
 
 
 def keyboardFunction(key, x, y):
-    if key == bytes("b", encoding='utf-8') or key == bytes("B", encoding='utf-8'):
-        print("B key down")
-    elif key == bytes("f", encoding='utf-8') or key == bytes("F", encoding='utf-8'):
-        print("F key down")
-
+    if key == bytes("n", encoding='utf-8') or key == bytes("N", encoding='utf-8'):
+        Util.setGlobalVar('wouldGoNext', True)
 
 def drawChessBoard():
     """
@@ -296,12 +294,12 @@ def openglManLoop():
     createAndPutTexture('asset/next.bmp', 'next')
     createAndPutTexture('asset/pre.bmp', 'pre')
     # 创建添加button
-    global buttons, textureIdDict
+    global buttons, textureIdDict, board
     nextBtn = Button.Button(60, 50, 110, 100, textureIdDict['next'])
-    nextBtn.setOnClickListener(lambda : print("next按钮被点击"))
+    nextBtn.setOnClickListener(lambda : board.redoMove())
     buttons.append(nextBtn)
     preBtn = Button.Button(5, 50, 55, 100, textureIdDict['pre'])
-    preBtn.setOnClickListener(lambda : print('pre按钮被点击'))
+    preBtn.setOnClickListener(lambda : board.undoMove())
     buttons.append(preBtn)
     glutMainLoop()  # 死循环
 
@@ -348,10 +346,11 @@ def run():
         # zero_player = ZeroPlayer(best_policy.policy_value_fn, c_puct=5, n_playout=500, is_selfplay=0)
         # zero_player1 = ZeroPlayer(best_policy.policy_value_fn, c_puct=5, n_playout=500, is_selfplay=0)
         human_player = HumanPlayer()
+        humanPlayer1 = HumanPlayer()
         pure_player = PurePlayer(n_playout=3000)
         pure_player1 = PurePlayer(n_playout=1000)
-        alphabeta_player = AlphaBetaPlayer(level=5)
-        alphabeta_player1 = AlphaBetaPlayer(level=9)
+        alphabeta_player = AlphaBetaPlayer(level=8)
+        alphabeta_player1 = AlphaBetaPlayer(level=8)
 
         while test_times > 0:
             # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
@@ -364,9 +363,9 @@ def run():
             # game.startPlay(zero_player, zero_player1, startPlayer=0, is_shown=1)
             # game.startPlay(pure_player, pure_player1, startPlayer=0, is_shown=1)
             # game.startPlay(pure_player, alphabeta_player, startPlayer=0, is_shown=1) # 后手8层5子对0子胜mcts3000
-            # game.startPlay(alphabeta_player, pure_player, startPlayer=0, is_shown=1) # 先手8层5子对0子胜mcts3000
-            game.startPlay(alphabeta_player, human_player, startPlayer=0,
-                           is_shown=1)  # 用zero的走法，我战胜了AlphaBeta，但是测试到后面，黑方00->01无中生有一颗黑子，可见代码还有bug
+            game.startPlay(alphabeta_player, pure_player, startPlayer=0, is_shown=1) # 先手8层5子对0子胜mcts3000
+            # game.startPlay(alphabeta_player, human_player, startPlayer=0, is_shown=1)  # 用zero的走法，我战胜了AlphaBeta，但是测试到后面，黑方00->01无中生有一颗黑子，可见代码还有bug
+            # game.startPlay(human_player, humanPlayer1, startPlayer=0, is_shown=1)
             # game.startPlay(human_player, alphabeta_player, startPlayer=0, is_shown=1)  # 执黑4对0战胜AlphaBeta9，难道程序有bug？
             # game.startPlay(alphabeta_player, alphabeta_player1, startPlayer=0, is_shown=1)  #开局就死循环
             # game.startPlay(zero_player, alphabeta_player, startPlayer=0, is_shown=1)  # zero500腾讯云训练1000局胜mcts1000，然而以1子对5子惨败AlphaBeta9。zero_txy500_？？？局先手以4-5子战平。；zero500训练2000盘后，先手以4子对5子和。

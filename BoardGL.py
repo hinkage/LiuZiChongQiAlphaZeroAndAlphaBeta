@@ -93,6 +93,7 @@ class Board(object):
         self.lastMoveCoordinate = None  # 最后一个走子落点
         self.availables = list()  # 当前所有的可能走子方式
         self.inverseMoves = dict()  # 反向移动
+        self.undoMoveList = list() # 保存悔棋,用于redo恢复
 
     def initBoard(self, startPlayer=0):
         """
@@ -247,20 +248,25 @@ class Board(object):
                         lst.append((x1 * self.width + y1) * 4 + 3)
         # 不允许走重复的棋
         global gBoardStates
-        length = len(gBoardStates)
-        if length > 4:
-            s0 = gBoardStates[-4]
-            s1 = gBoardStates[-4]
-            s2 = gBoardStates[-3]
-            s3 = gBoardStates[-2]
-            s4 = gBoardStates[-1]
-
-            if self.equals(s0):
-                if s0.currentMove in lst:
-                    lst.remove(s0.currentMove)
-                    # print('deleted one item in lst')
-                else:
-                    print('g_move_list[-4] is not in lst')
+        # length = len(gBoardStates)
+        # if length > 4:
+        #     s0 = gBoardStates[-4]
+        #     s1 = gBoardStates[-4]
+        #     s2 = gBoardStates[-3]
+        #     s3 = gBoardStates[-2]
+        #     s4 = gBoardStates[-1]
+        #
+        #     if self.equals(s0):
+        #         if s0.currentMove in lst:
+        #             lst.remove(s0.currentMove)
+        #             # print('deleted one item in lst')
+        #         else:
+        #             print('g_move_list[-4] is not in lst')
+        boardState:BoardState
+        for i in range(0, len(gBoardStates) - 1):
+            boardState = gBoardStates[i]
+            if (self.equals(boardState)):
+                lst.remove(boardState.currentMove)
 
         self.availables = lst
         self.hasCalculated = True
@@ -470,7 +476,7 @@ class Board(object):
         # Python没有类型不匹配报错，导致我调试了半天2018/5/27
         self.calcSensibleMoves(self.currentPlayer)  # after doMove, the availables should be updated here
 
-    def undo_move(self):
+    def undoMove(self):
         if len(self.moveList) == 0:
             return
 
@@ -499,8 +505,17 @@ class Board(object):
                 self.chessManCount[self.currentPlayer] += 1
                 # print("恢复一个{}棋子 in move:{}".format(self.currentPlayer, move))
 
-        self.currentPlayer = self.players[0] if self.currentPlayer == self.players[1] else self.players[1]
-        self.calcSensibleMoves(self.currentPlayer)  # after undo_move, the availables should be updated here
+        self.currentPlayer = self.players[0] if self.currentPlayer == self.players[1] else self.players[1]  # 交换当前棋手
+        self.calcSensibleMoves(self.currentPlayer)  # after undoMove, the availables should be updated here
+        # 把悔棋的move保存起来
+        self.undoMoveList.append(move)
+
+    def redoMove(self):
+        try:
+            lastUndoMove = self.undoMoveList.pop()
+        except:
+            return
+        self.doMove(lastUndoMove)
 
     def isGameEnd(self):
         """

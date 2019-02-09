@@ -2,6 +2,7 @@
 
 from BoardGL import Board
 import copy
+import Util
 
 class SearchEngine:
     """
@@ -47,7 +48,7 @@ class SearchEngine:
             for move in moves:                    
                 self.board.doMove(move)
                 score = self.AlphaBeta(depth + 1, alpha, beta) # 深度优先
-                self.board.undo_move() #
+                self.board.undoMove() #
                 
                 self.action_dict.setdefault(depth, move)
                 if self.best_score == -1000 and depth == 0:                    
@@ -71,7 +72,7 @@ class SearchEngine:
                 # 递归    
                 self.board.doMove(move)
                 score = self.AlphaBeta(depth + 1, alpha, beta) # 深度优先
-                self.board.undo_move() # 
+                self.board.undoMove() #
                 
                 self.action_dict.setdefault(depth, move)
                 if self.best_score == -1000 and depth == 0:                
@@ -106,7 +107,7 @@ class SearchEngine:
                 self.default_move = move
             self.board.doMove(move)
             score = self.AlphaBeta(depth + 1, alpha, beta) # 深度优先
-            self.board.undo_move() # 
+            self.board.undoMove() # 
             isMaxNode = depth % 2
             if isMaxNode:
                 if score > alpha:
@@ -149,6 +150,9 @@ class AlphaBetaPlayer:
             location = board.move2coordinate(best_move)
             print("AlphaBetaPlayer choose action: %d,%d to %d,%d, accessCount: %d\n" % (location[0], location[1], location[2], location[3], engine.accessCount))
             print(engine.action_dict)
+        while not Util.getGobalVar('wouldGoNext'):
+            pass
+        Util.setGlobalVar('wouldGoNext', False)
         return best_move
 
     def __str__(self):

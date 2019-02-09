@@ -90,7 +90,7 @@ class SearchEngine:
                 self.default_move = move
             self.board.doMove(move)
             score = -self.AlphaBeta(depth - 1, -beta, -alpha)
-            self.board.undo_move()
+            self.board.undoMove()
 
             if score > alpha:
                 # print("score:{}>alpha:{},depth:{},move:{}".format(score,alpha,depth,move))
