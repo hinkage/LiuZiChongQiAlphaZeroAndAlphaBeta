@@ -138,7 +138,7 @@ class TrainPipeline():
         return win_ratio
 
     def run(self):
-        """run the training pipeline"""
+        """运行训练流水线"""
         try:
             for i in range(self.gameBatchNumber):
                 self.collect_selfplay_data(self.playBatchSize)
