@@ -11,7 +11,7 @@ def init():
 def setGlobalVar(key, value):
     globalVars[key] = value
 
-def getGobalVar(key):
+def getGlobalVar(key):
     try:
         return globalVars[key]
     except:

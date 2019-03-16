@@ -1,0 +1,8 @@
+2019-03-03
+此目录下权重是在不限制循环局面出现,走子回合数超过200就判和的规则下生成的,current_policy跑谱数为2000,
+best_policy记不清是多少谱的了.
+best_policy的次数是比current_policy少的,效果也比后者差很多,后者执白可战胜ab算法8层,前者不行.
+虽然现在棋规改为不允许出现重复局面了,但是current_policy却仍然可以执白战胜ab算法8层.
+2019-03-04
+这些权重是在腾讯云上用cpu生成的.best_policy的meta文件大小比current_policy大13kb,它可能是之前在win上用N卡生成的,
+操作系统不同这个文件的大小会不同.但是在win上可以使用centos7生成的那个大小比较小的meta文件.

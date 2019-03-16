@@ -1,0 +1,7 @@
+1. What does 1x1 convolution mean in a neural network?
+https://stats.stackexchange.com/questions/194142/what-does-1x1-convolution-mean-in-a-neural-network
+
+2. AlphaZero中的超参数含义
+https://medium.com/oracledevs/lessons-from-alphazero-part-3-parameter-tweaking-4dceb78ed1e5
+
+3. polynomial upper confidence trees

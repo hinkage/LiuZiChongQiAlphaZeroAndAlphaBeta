@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Monte Carlo Tree Search in AlphaGo Zero style, which uses a policy-value network
-to guide the tree search and evaluate the leaf nodes
+AlphaGo Zero风格的蒙特卡罗树搜索，使用策略价值网络引导树搜索并评估叶节点
 
 @author: hj
 """
 import numpy as np
-import copy 
+import copy
+
+import BoardGL
+from TreeNode import TreeNode
 
 
 def softmax(x):
@@ -14,190 +16,124 @@ def softmax(x):
     probs /= np.sum(probs)
     return probs
 
-class TreeNode(object):
-    """A node in the MCTS tree. Each node keeps track of its own value Q, prior probability P, and
-    its visit-count-adjusted prior score u.
-    """
-
-    def __init__(self, parent, prior_p):
-        self._parent = parent
-        self._children = {}  # a map from action to TreeNode
-        self._n_visits = 0
-        self._Q = 0
-        self._u = 0
-        self._P = prior_p
-
-    def expand(self, action_priors):
-        """Expand tree by creating new children.
-        action_priors -- output from policy function - a list of tuples of actions
-            and their prior probability according to the policy function.
-        """
-        for action, prob in action_priors:
-            if action not in self._children:
-                self._children[action] = TreeNode(self, prob)
-
-    def select(self, c_puct):
-        """Select action among children that gives maximum action value, Q plus bonus u(P).
-        Returns:
-        A tuple of (action, next_node)
-        """
-        return max(self._children.items(), key=lambda act_node: act_node[1].get_value(c_puct))
-
-    def update(self, leaf_value):
-        """Update node values from leaf evaluation.
-        Arguments:
-        leaf_value -- the value of subtree evaluation from the current player's perspective.        
-        """
-        # Count visit.
-        self._n_visits += 1
-        # Update Q, a running average of values for all visits.
-        self._Q += 1.0*(leaf_value - self._Q) / self._n_visits
-
-    def update_recursive(self, leaf_value):
-        """Like a call to update(), but applied recursively for all ancestors.
-        """
-        # If it is not root, this node's parent should be updated first.
-        if self._parent:
-            self._parent.update_recursive(-leaf_value)
-        self.update(leaf_value)
-
-    def get_value(self, c_puct):
-        """Calculate and return the value for this node: a combination of leaf evaluations, Q, and
-        this node's prior adjusted for its visit count, u
-        c_puct -- a number in (0, inf) controlling the relative impact of values, Q, and
-            prior probability, P, on this node's score.
-        """
-        self._u = c_puct * self._P * np.sqrt(self._parent._n_visits) / (1 + self._n_visits)
-        return self._Q + self._u
-
-    def is_leaf(self):
-        """Check if leaf node (i.e. no nodes below this have been expanded).
-        """
-        return self._children == {}
-
-    def is_root(self):
-        return self._parent is None
-
 
 class MCTS(object):
-    """A simple implementation of Monte Carlo Tree Search.
+    """
+    蒙特卡诺搜索树的简单实现
     """
 
-    def __init__(self, policy_value_fn, c_puct=5, n_playout=10000):
-        """Arguments:
-        policy_value_fn -- a function that takes in a board state and outputs a list of (action, probability)
-            tuples and also a score in [-1, 1] (i.e. the expected value of the end game score from 
-            the current player's perspective) for the current player.
-        c_puct -- a number in (0, inf) that controls how quickly exploration converges to the
-            maximum-value policy, where a higher value means relying on the prior more
+    def __init__(self, policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=10000):
+        """
+        蒙特卡诺搜索树 (MCTS)
+
+        :param policyValueFunction: 函数,输入一个棋盘状态,返回(action, probability)这样的元组的列表和一个在[-1, 1]上的分数,这个分数是从当前玩家的角度来看最终游戏得分的预期值.
+        :param polynomialUpperConfidenceTreesConstant: （0，inf）中的一个数字，用于控制勘探收敛到最大值政策的速度，其中较高的值意味着依赖于先前的更多. 这个参数越大的话MCTS搜索的过程中就偏向于均匀的探索，越小的话就偏向于直接选择访问次数多的分支.
         """
         self._root = TreeNode(None, 1.0)
-        self._policy = policy_value_fn
-        self._c_puct = c_puct
-        self._n_playout = n_playout
+        self._policy = policyValueFunction
+        self._c_puct = polynomialUpperConfidenceTreesConstant
+        self._n_playout = playoutTimes
 
-    def _playout(self, state):
-        """Run a single playout from the root to the leaf, getting a value at the leaf and
-        propagating传播 it back through its parents. State is modified in-place, so a copy must be
-        provided.
-        Arguments:
-        state -- a copy of the state.
+    def __playout(self, board: BoardGL.Board):
+        """
+        从根到叶子模拟走子，在叶子上获取值并通过其父亲传播回来.棋盘状态会被修改，因此必须提供它的拷贝
+
+        :param state: 棋盘状态的拷贝
         """
         node = self._root
-        while(1):            
-            if node.is_leaf():
-                break                
-            # Greedily select next move.
-            action, node = node.select(self._c_puct)            
-            state.doMove(action)
-
-        # Evaluate the leaf using a network which outputs a list of (action, probability)
-        # tuples p and also a score v in [-1, 1] for the current player.
-        action_probs, leaf_value = self._policy(state)
-        # Check for end of game.
-        end, winner = state.isGameEnd()
+        while True:
+            if node.isLeafNode():  # 到达叶子结点
+                break
+            # 贪婪选择下一步行动
+            action, node = node.select(self._c_puct)
+            board.doMove(action)
+        # 使用网络评估叶子,网络输出(action, probability)这样的元组的列表和一个在[-1, 1]上的分数,这个分数是从当前玩家的角度来看最终游戏得分的预期值.
+        actionProbabilities, leafValue = self._policy(board)
+        end, winner = board.isGameEnd()
         if not end:
-            node.expand(action_probs)
+            node.expand(actionProbabilities)  # 每种走子选择都拓展了一个新的子结点
         else:
-            # for end state，return the "true" leaf_value
+            # 如果对局结束,则更据获胜方来
             if winner == -1:  # tie
-                leaf_value = 0.0
+                leafValue = 0.0
+            elif winner == board.getCurrentPlayer():
+                leafValue = 1.0
             else:
-                leaf_value = 1.0 if winner == state.getCurrentPlayer() else -1.0
+                leafValue = -1.0
+        # 更新此遍历中的值和访问节点数
+        node.updateRecursively(-leafValue)
 
-        # Update value and visit count of nodes in this traversal遍历.recursive递归
-        node.update_recursive(-leaf_value)
-
-    def get_move_probs(self, state, temp=1e-3):
-        """Runs all playouts sequentially and returns the available actions and their corresponding probabilities 
-        Arguments:
-        state -- the current state, including both game state and the current player.
-        temp -- temperature parameter in (0, 1] that controls the level of exploration
-        Returns:
-        the available actions and the corresponding probabilities 
-        """        
-        for n in range(self._n_playout):
-            state_copy = copy.deepcopy(state)
-            self._playout(state_copy)
-  
-        # calc the move probabilities based on the visit counts at the root node
-        act_visits = [(act, node._n_visits) for act, node in self._root._children.items()]
-        acts, visits = zip(*act_visits)
-        act_probs = softmax(1.0/temp * np.log(np.array(visits) + 1e-10))       
-         
-        return acts, act_probs
-
-    def update_with_move(self, last_move):
-        """Step forward in the tree, keeping everything we already know about the subtree.
+    def getMoveProbabilities(self, state, temperature=1e-3):
         """
-        if last_move in self._root._children:
-            self._root = self._root._children[last_move]
+        按所有可能走子方式的顺序模拟走子并返回action及其相应的概率
+
+        :param state: 当前状态，包括游戏状态和当前玩家
+        :param temperature: (0,1)中的参数, 控制探测水平
+        :return: 可用的action和相应的概率
+        """
+        for n in range(self._n_playout):
+            copyState = copy.deepcopy(state)
+            self.__playout(copyState)
+        # 根据根节点处的访问计数来计算移动概率
+        movesVisitTime = [(move, node.visitedTimes) for move, node in self._root._children.items()]
+        moves, visitTimes = zip(*movesVisitTime)
+        actionProbabilities = softmax(1.0 / temperature * np.log(np.array(visitTimes) + 1e-10))
+
+        return moves, actionProbabilities
+
+    def updateWithMove(self, lastMove):
+        """
+        在树中前进，保留我们已经知道的关于子树的所有内容
+        """
+        if lastMove in self._root._children:
+            self._root = self._root._children[lastMove]
             self._root._parent = None
         else:
             self._root = TreeNode(None, 1.0)
 
     def __str__(self):
         return "MCTS"
-        
+
 
 class AlphaZeroPlayer(object):
-    """AI player based on MCTS"""
-    # n_playout=2000先改为40
-    def __init__(self, policy_value_function, c_puct=5, n_playout=2000, is_selfplay=0):
-        self.mcts = MCTS(policy_value_function, c_puct, n_playout)
-        self._is_selfplay = is_selfplay
-    
+    """基于AlphaZero的AI玩家"""
+    def __init__(self, policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=2000, isSelfPlay=0):
+        self.mcts = MCTS(policyValueFunction, polynomialUpperConfidenceTreesConstant, playoutTimes)
+        self.__isSelfPlay = isSelfPlay
+
     def setPlayerIndex(self, p):
         self.player = p
 
-    def resetPlayer(self):
-        self.mcts.update_with_move(-1) 
+    def resetRootNode(self):
+        self.mcts.updateWithMove(-1)
 
-    def getAction(self, board, temp=1e-3, return_prob=0):
-        sensible_moves = board.getAvailables()
-        move_probs = np.zeros(board.width * board.height * 4)
-        # the pi vector returned by MCTS as in the alphaGo Zero paper
-        if len(sensible_moves) > 0:
-            acts, probs = self.mcts.get_move_probs(board, temp)
-            move_probs[list(acts)] = probs         
-            if self._is_selfplay:
-                # add Dirichlet狄氏 Noise for exploration (needed for self-play training)
-                move = np.random.choice(acts, p=0.75*probs + 0.25*np.random.dirichlet(0.3*np.ones(len(probs))))    
-                self.mcts.update_with_move(move) # update the root node and reuse the search tree
+    def getAction(self, board, temperature=1e-3, returnProb=0):
+        allAvailableMoves = board.getAvailableMoves()
+        moveProbabilities = np.zeros(board.width * board.height * 4)  # 64种走子的可能值,初始化为0
+        # MCTS返回的pi向量与AlphaGo Zero论文一样
+        if len(allAvailableMoves) > 0:
+            moves, probabilities = self.mcts.getMoveProbabilities(board, temperature)
+            moveProbabilities[list(moves)] = probabilities
+            if self.__isSelfPlay:
+                # 自我训练需要给探索过程添加狄利克雷噪声
+                move = np.random.choice(moves, p=0.75 * probabilities + 0.25 * np.random.dirichlet(0.3 * np.ones(len(probabilities))))
+                # 更新根节点并重用搜索树
+                self.mcts.updateWithMove(move)
             else:
-                # with the default temp=1e-3, this is almost equivalent to choosing the move with the highest prob
-                move = np.random.choice(acts, p=probs)       
-                # reset the root node
-                self.mcts.update_with_move(-1)             
+                # 使用默认的temp = 1e-3，这几乎相当于选择具有最高概率的移动
+                move = np.random.choice(moves, p=probabilities)
+                # 重置根节点
+                self.mcts.updateWithMove(-1)
                 location = board.move2coordinate(move)
-                print("ZeroPlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
-                
-            if return_prob:
-                return move, move_probs
+                print("AlphaZeroPlayer choose action: %d,%d to %d,%d\n" % (
+                location[0], location[1], location[2], location[3]))
+
+            if returnProb:
+                return move, moveProbabilities
             else:
                 return move
-        else:            
+        else:
             print("WARNING: the board is full")
 
     def __str__(self):
-        return "ZeroPlayer {}".format(self.player)
+        return "AlphaZeroPlayer {}".format(self.player)
