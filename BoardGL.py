@@ -62,7 +62,6 @@ class Board(object):
         self.lastMove = -1  # 最后一个走子方式
         self.lastMovePoint = None  # 最后一个走子落点
         self.availables = list()  # 当前所有的可能走子方式
-        self.inverseMoves = dict()  # 反向移动
         self.undoMoveList = list()  # 保存悔棋,用于redo恢复
         self.historyBoardStates = list()
 
@@ -81,20 +80,16 @@ class Board(object):
         self.currentPlayer = self.playersIndex[startPlayer]  # 当前玩家是哪个
         # 空白处为-1，0号player的棋子类型号为0，1号player的棋子类型为1
         # 棋盘状态
-        # self.state = {0: 0, 1: 0, 2: 0, 3: 0,
-        #               4: 0, 5: -1, 6: -1, 7: 0,
-        #               8: 1, 9: -1, 10: -1, 11: 1,
-        #               12: 1, 13: 1, 14: 1, 15: 1}
-        self.state = {0: -1, 1: 1, 2: 1, 3: 0,
-                      4: -1, 5: 1, 6: 1, 7: -1,
-                      8: -1, 9: 1, 10: -1, 11: 1,
-                      12: -1, 13: -1, 14: -1, 15: -1}
+        self.state = {0: 0, 1: 0, 2: 0, 3: 0,
+                      4: 0, 5: -1, 6: -1, 7: 0,
+                      8: 1, 9: -1, 10: -1, 11: 1,
+                      12: 1, 13: 1, 14: 1, 15: 1}
+        # self.state = {0: -1, 1: 1, 2: 1, 3: 0,
+        #               4: -1, 5: 1, 6: 1, 7: -1,
+        #               8: -1, 9: 1, 10: -1, 11: 1,
+        #               12: -1, 13: -1, 14: -1, 15: -1}
         # 两类棋子还存活的个数,最开始都是6个
-        self.chessManCount = [1, 6]
-        for m in range(64):
-            x1, y1, x2, y2 = self.move2coordinate(m)
-            m1 = self.coordinate2Move([x2, y2, x1, y1])
-            self.inverseMoves.setdefault(m, m1)  # m的反向走子m1
+        self.chessManCount = [6, 6]
         self.lastMovePoint = -1
 
     def move2coordinate(self, move):
