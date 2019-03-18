@@ -90,22 +90,22 @@ class PolicyValueNet():
         if modelPath is not None:
             self.restoreModel(modelPath)
 
-    def __doPolicyValueFunction(self, batchData):
+    def doPolicyValueFunction(self, batchState):
         """
         返回走子方式的概率和一个预测胜负的分值
         """
-        logActionProbabilities, value = self.session.run([self.moveDense, self.evaluationDense2],
-                                                          feed_dict={self.inputData: batchData})
+        logActionProbabilities, score = self.session.run([self.moveDense, self.evaluationDense2],
+                                                         feed_dict={self.inputData: batchState})
         actionProbabilities = np.exp(logActionProbabilities)
-        return actionProbabilities, value
+        return actionProbabilities, score
 
     def policyValueFunction(self, board:BoardGL.Board):
         """
         返回所有走子方式的概率和一个预测胜负的分数
         """
         availableMoves = board.getAvailableMoves()
-        trainData = np.ascontiguousarray(board.generateTrainData().reshape(-1, 4, self.boardWidth, self.boardHeight))
-        actionProbabilities, value = self.__doPolicyValueFunction(trainData)
+        trainData = np.ascontiguousarray(board.getTrainData().reshape(-1, 4, self.boardWidth, self.boardHeight))
+        actionProbabilities, value = self.doPolicyValueFunction(trainData)
         actionProbabilities = zip(availableMoves, actionProbabilities[0][availableMoves])
         return actionProbabilities, value
 

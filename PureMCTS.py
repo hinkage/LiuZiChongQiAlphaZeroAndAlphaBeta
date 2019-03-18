@@ -127,6 +127,9 @@ class PureMCTSPlayer(object):
         self.mcts = MCTS(policyValueFunction, polynomialUpperConfidenceTreesConstant, playoutTimes)
         self.printMove = True
 
+    def getName(self):
+        return 'PureMCTS_' + str(self.mcts._n_playout)
+
     def setPlayerIndex(self, p):
         self.player = p
 

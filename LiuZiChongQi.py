@@ -3,7 +3,10 @@
 感觉把写好的那个C的界面翻译成python，也是很需要时间的。现在先把工程实践4做完再说吧。2018/5/2/2/51
 """
 import _thread
+import json
 import math
+import time
+
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
@@ -15,21 +18,29 @@ from PureMCTS import PureMCTSPlayer as PureMCTSPlayer
 from AlphaZero import AlphaZeroPlayer as ZeroPlayer
 from PolicyValueNet import PolicyValueNet
 import Util
+
 Util.init()
 
 board = None
-game:BoardGL.Game = None
+game: BoardGL.Game = None
 move = None
 # 实际测试发现,从其它文件import如下dict变量时,只能获取到其静态设置的值,而无法获取到运行时动态添加的那些值
 # 可见导入的根本不是同一个对象
-textureIdDict:dict = {}
-buttons:list = []
+textureIdDict: dict = {}
+buttons: list = []
+isReplaying = False
+replayMoves = None
+replayIndex = 0
 
 import Button
+
 
 class HumanPlayer(object):
     def __init__(self):
         self.player = None
+
+    def getName(self):
+        return 'Human'
 
     def setPlayerIndex(self, p):
         """
@@ -118,21 +129,21 @@ def mouseFunction(mouseButton, state, x, y):
         if state == GLUT_DOWN:  # 如果是按下
             # 把坐标值传递给回调函数
             global buttons
-            button:Button.Button
+            button: Button.Button
             for button in buttons:
                 button.click(x, game.windowHeight - y)
 
             if mapCoordinate(x, y, lst):  # 将屏幕坐标x,y映射为棋盘4*4坐标
-                if (lst[0] >= 0 and lst[1] >= 0): # 如果不加此条件,则数组取值下标为负数时会抛出异常导致opengl报错
+                if (lst[0] >= 0 and lst[1] >= 0):  # 如果不加此条件,则数组取值下标为负数时会抛出异常导致opengl报错
                     xa = int(lst[0])
                     ya = int(lst[1])
                     if game.board.state[ya * game.board.width + xa] != -1:  # 如果棋盘坐标对应位置不是空白的
                         if game.board.state[ya * game.board.width + xa] == game.board.currentPlayer:  # 0黑1白
                             game.currentSelectedX = xa  # 当前选中棋子的x坐标
                             game.currentSelectedY = ya  # 当前选中棋子的y坐标
-                            game.is_selected = True  # 棋盘中已有棋子被选中
+                            game.isSelected = True  # 棋盘中已有棋子被选中
                     else:  # 如果棋盘坐标对应位置是空白的
-                        if game.is_selected:  # 如果棋盘中已有棋子被选中
+                        if game.isSelected:  # 如果棋盘中已有棋子被选中
                             global move  # 移动方式的数字表示
                             if xa - game.currentSelectedX == 1:  # 如果当前点击的空白点离被选中棋子横向距离为1
                                 move = (game.currentSelectedY * game.board.width + game.currentSelectedX) * 4 + 0
@@ -147,7 +158,16 @@ def mouseFunction(mouseButton, state, x, y):
                             while game.hasHumanMoved:
                                 pass
                             # game.board.doMove(move)
-                            game.is_selected = False
+                            game.isSelected = False
+
+
+def replayDoNextMove():
+    global board, replayMoves, replayIndex
+    if len(board.undoMoveList) > 0:
+        board.redoMove()
+    elif replayIndex < len(replayMoves):
+        board.doMove(replayMoves[replayIndex])
+        replayIndex += 1
 
 
 def keyboardFunction(key, x, y):
@@ -159,8 +179,14 @@ def keyboardFunction(key, x, y):
     :param y: 鼠标y坐标
     :return: 无
     """
-    if key == bytes("n", encoding='utf-8') or key == bytes("N", encoding='utf-8'):
-        Util.setGlobalVar('wouldGoNext', True)
+    if not isReplaying:
+        if key == bytes("n", encoding='utf-8') or key == bytes("N", encoding='utf-8'):
+            Util.setGlobalVar('wouldGoNext', True)
+    else:
+        if key == bytes("n", encoding='utf-8') or key == bytes("N", encoding='utf-8'):
+            replayDoNextMove()
+        if key == bytes("b", encoding='utf-8') or key == bytes("B", encoding='utf-8'):
+            board.undoMove()
 
 
 def drawChessBoard():
@@ -214,7 +240,7 @@ def drawAllPieces():
                               game.pieceRadius, game.board.state[y * game.board.width + x])
 
 
-def createAndPutTexture(filepath, key:str):
+def createAndPutTexture(filepath, key: str):
     """
     参考: http://pyopengl.sourceforge.net/context/tutorials/nehe6.html
     添加一个纹理到全局纹理字典textureIdDict中去
@@ -239,7 +265,7 @@ def createAndPutTexture(filepath, key:str):
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
     # Copy the texture data into the current texture ID
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.size[0], image.size[1],
-                                0, GL_RGB, GL_UNSIGNED_BYTE, imageData)
+                 0, GL_RGB, GL_UNSIGNED_BYTE, imageData)
     # Configure the texture rendering parameters
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
@@ -252,7 +278,7 @@ def createAndPutTexture(filepath, key:str):
 
 def drawButtons():
     global buttons
-    button:Button = None
+    button: Button = None
     for button in buttons:
         button.render()
 
@@ -272,7 +298,18 @@ def idleFunction():
     glutPostRedisplay()
 
 
-def openglManLoop():
+def preBtnClick():
+    board.undoMove()
+
+
+def nextBtnClick():
+    if not isReplaying:
+        board.redoMove()
+    else:
+        replayDoNextMove()
+
+
+def openglManLoop(width, height):
     """
     opengl的启动函数
     :return:
@@ -284,7 +321,7 @@ def openglManLoop():
     GLUT_RGB	0x0000	指定RGB颜色模式的窗口
     """
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
-    glutInitWindowSize(game.windowWidth, game.windowHeight)  # 窗口尺寸
+    glutInitWindowSize(width, height)  # 窗口尺寸
     glutInitWindowPosition(0, 0)  # 窗口位置
     glutCreateWindow("OpenGL LiuZiChong")  # 窗口标题
     glutDisplayFunc(displayFunction)  # 显示函数
@@ -296,7 +333,7 @@ def openglManLoop():
     glLineWidth(2.0)  # 线条宽度
     glMatrixMode(GL_PROJECTION)  # 投影
     glLoadIdentity()  # 单位矩阵
-    gluOrtho2D(0.0, game.windowWidth, 0.0, game.windowHeight)  # 定义剪裁面
+    gluOrtho2D(0.0, width, 0.0, height)  # 定义剪裁面
     # init()
     # 加载texture
     glEnable(GL_TEXTURE_2D)
@@ -305,40 +342,31 @@ def openglManLoop():
     # 创建添加button
     global buttons, textureIdDict, board
     preBtn = Button.Button(155, 50, 205, 100, textureIdDict['pre'])
-    preBtn.setOnClickListener(lambda : board.undoMove())
+    preBtn.setOnClickListener(preBtnClick)
     buttons.append(preBtn)
     nextBtn = Button.Button(210, 50, 260, 100, textureIdDict['next'])
-    nextBtn.setOnClickListener(lambda : board.redoMove())
+    nextBtn.setOnClickListener(nextBtnClick)
     buttons.append(nextBtn)
     glutMainLoop()  # 死循环
 
 
 def uiThread():
-    _thread.start_new_thread(openglManLoop, ())
+    try:
+        _thread.start_new_thread(openglManLoop, (game.windowWidth, game.windowHeight))
+    except Exception as e:
+        print(e)
 
 
-def updateBoard(brd=None):
-    if brd is not None:
-        global board
-        board = brd
-        global game
-        game = BoardGL.Game(board)
-
-
-def run():
-    global board
-    board = BoardGL.Board(width=4, height=4)
-    board.initBoard()
-    global game
-    game = BoardGL.Game(board)
-
-    test_times = 1
+def playGame():
     width, height = 4, 4
-    modelPath = './weight/canloop/current_policy.model'
+    modelPath = Util.getCanloopCurrentPolicyModelPath()
+    uiThread()
     try:
         policyValueNet = PolicyValueNet(width, height, modelPath=modelPath)
-        zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
-        zeroPlayer1 = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
+        zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+                                playoutTimes=500, isSelfPlay=0)
+        zeroPlayer1 = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+                                 playoutTimes=500, isSelfPlay=0)
         humanPlayer = HumanPlayer()
         humanPlayer1 = HumanPlayer()
         pureMCTSPlayer = PureMCTSPlayer(playoutTimes=500)
@@ -346,16 +374,25 @@ def run():
         alphabetaPlayer = AlphaBetaPlayer(level=9)
         alphabetaPlayer1 = AlphaBetaPlayer(level=8)
 
-        while test_times > 0:
-            # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-            game.startPlay(alphabetaPlayer, zeroPlayer, startPlayer=0, printMove=1)
-
-            test_times -= 1
+        # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
+        game.startPlay(humanPlayer, humanPlayer1, startPlayer=0, printMove=1, type='play')
 
     except KeyboardInterrupt:
         print('\n\rquit')
 
 
-if __name__ == '__main__':
+def replayGame():
+    global isReplaying, board, replayMoves
+    isReplaying = True
+    replayMoves = json.loads(Util.readGameFromDB(index=1)[4])
+    print(replayMoves)
     uiThread()
-    run()
+    while True:
+        time.sleep(2)
+
+
+if __name__ == '__main__':
+    game = BoardGL.Game()
+
+    playGame()
+    # replayGame()

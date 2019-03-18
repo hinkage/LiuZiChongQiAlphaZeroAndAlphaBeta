@@ -29,7 +29,7 @@ class MCTS(object):
         :param policyValueFunction: 函数,输入一个棋盘状态,返回(action, probability)这样的元组的列表和一个在[-1, 1]上的分数,这个分数是从当前玩家的角度来看最终游戏得分的预期值.
         :param polynomialUpperConfidenceTreesConstant: （0，inf）中的一个数字，用于控制勘探收敛到最大值政策的速度，其中较高的值意味着依赖于先前的更多. 这个参数越大的话MCTS搜索的过程中就偏向于均匀的探索，越小的话就偏向于直接选择访问次数多的分支.
         """
-        self._root = TreeNode(None, 1.0)
+        self.__root = TreeNode(None, 1.0)
         self._policy = policyValueFunction
         self._c_puct = polynomialUpperConfidenceTreesConstant
         self._n_playout = playoutTimes
@@ -40,7 +40,7 @@ class MCTS(object):
 
         :param state: 棋盘状态的拷贝
         """
-        node = self._root
+        node = self.__root
         while True:
             if node.isLeafNode():  # 到达叶子结点
                 break
@@ -75,7 +75,7 @@ class MCTS(object):
             copyState = copy.deepcopy(state)
             self.__playout(copyState)
         # 根据根节点处的访问计数来计算移动概率
-        movesVisitTime = [(move, node.visitedTimes) for move, node in self._root._children.items()]
+        movesVisitTime = [(move, node.visitedTimes) for move, node in self.__root._children.items()]
         moves, visitTimes = zip(*movesVisitTime)
         actionProbabilities = softmax(1.0 / temperature * np.log(np.array(visitTimes) + 1e-10))
 
@@ -85,11 +85,11 @@ class MCTS(object):
         """
         在树中前进，保留我们已经知道的关于子树的所有内容
         """
-        if lastMove in self._root._children:
-            self._root = self._root._children[lastMove]
-            self._root._parent = None
+        if lastMove in self.__root._children:
+            self.__root = self.__root._children[lastMove]
+            self.__root._parent = None
         else:
-            self._root = TreeNode(None, 1.0)
+            self.__root = TreeNode(None, 1.0)
 
     def __str__(self):
         return "MCTS"
@@ -100,6 +100,9 @@ class AlphaZeroPlayer(object):
     def __init__(self, policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=2000, isSelfPlay=0):
         self.mcts = MCTS(policyValueFunction, polynomialUpperConfidenceTreesConstant, playoutTimes)
         self.__isSelfPlay = isSelfPlay
+
+    def getName(self):
+        return 'AlphaZero'
 
     def setPlayerIndex(self, p):
         self.player = p

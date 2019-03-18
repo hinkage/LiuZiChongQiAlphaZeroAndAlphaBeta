@@ -138,12 +138,15 @@ class AlphaBetaPlayer:
         self.printMove = True
         self.searchDepth = level
 
+    def getName(self):
+        return 'AlphaBeta'
+
     def setPlayerIndex(self, p):
         self.player = p
 
     def getAction(self, board):
-        board_copy = copy.deepcopy(board)
-        engine = SearchEngine(board_copy, self.player)
+        copyedBoard = copy.deepcopy(board)
+        engine = SearchEngine(copyedBoard, self.player)
         # engine = SearchEngine(board, self.player)
 
         engine.maxDepth = self.searchDepth

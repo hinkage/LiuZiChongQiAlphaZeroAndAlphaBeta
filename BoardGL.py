@@ -7,9 +7,16 @@ __init__(self, move, hasEaten=False, rePutPos=list())里面定义了一个全局
 现在alphabeta树终于展示了它的强大----2018/5/15/1:23
 """
 from __future__ import print_function
+
+import datetime
+import json
+import uuid
+
 import numpy as np
 
 import copy
+
+import Util
 
 
 class BoardState(object):
@@ -49,9 +56,9 @@ class Board(object):
         self.width = int(kwargs.get('width', 4))  # 从入参中获取棋盘横向线条数量
         self.height = int(kwargs.get('height', 4))  # 从入参获取棋盘纵向线条数量
         self.directions = 4  # 四个走子方向
-        self.players = [0, 1]  # 0表示执黑玩家,1表示执白玩家
-        self.startPlayer = self.players[0]  # 先手玩家
-        self.currentPlayer = self.players[self.startPlayer]  # 当前玩家
+        self.playersIndex = [0, 1]  # 0表示执黑玩家,1表示执白玩家
+        self.startPlayer = self.playersIndex[0]  # 先手玩家
+        self.currentPlayer = self.playersIndex[self.startPlayer]  # 当前玩家
         self.lastMove = -1  # 最后一个走子方式
         self.lastMovePoint = None  # 最后一个走子落点
         self.availables = list()  # 当前所有的可能走子方式
@@ -71,15 +78,19 @@ class Board(object):
         # 再改进该规则为不允许出现和任一历史盘面相同的局面,即一旦开始走子,每一步产生的局面都必须是新的 2019-02-07
         self.moveCount = 0  # 走动次数统计
         self.startPlayer = startPlayer  # 从哪个玩家开始
-        self.currentPlayer = self.players[startPlayer]  # 当前玩家是哪个
+        self.currentPlayer = self.playersIndex[startPlayer]  # 当前玩家是哪个
         # 空白处为-1，0号player的棋子类型号为0，1号player的棋子类型为1
         # 棋盘状态
-        self.state = {0: 0, 1: 0, 2: 0, 3: 0,
-                      4: 0, 5: -1, 6: -1, 7: 0,
-                      8: 1, 9: -1, 10: -1, 11: 1,
-                      12: 1, 13: 1, 14: 1, 15: 1}
+        # self.state = {0: 0, 1: 0, 2: 0, 3: 0,
+        #               4: 0, 5: -1, 6: -1, 7: 0,
+        #               8: 1, 9: -1, 10: -1, 11: 1,
+        #               12: 1, 13: 1, 14: 1, 15: 1}
+        self.state = {0: -1, 1: 1, 2: 1, 3: 0,
+                      4: -1, 5: 1, 6: 1, 7: -1,
+                      8: -1, 9: 1, 10: -1, 11: 1,
+                      12: -1, 13: -1, 14: -1, 15: -1}
         # 两类棋子还存活的个数,最开始都是6个
-        self.chessManCount = [6, 6]
+        self.chessManCount = [1, 6]
         for m in range(64):
             x1, y1, x2, y2 = self.move2coordinate(m)
             m1 = self.coordinate2Move([x2, y2, x1, y1])
@@ -134,7 +145,7 @@ class Board(object):
             move += 3
         return move
 
-    def generateTrainData(self):
+    def getTrainData(self):
         """
         返回训练数据,四个平面
 
@@ -143,10 +154,10 @@ class Board(object):
         squareState = np.zeros((4, self.width, self.height))
         if self.state:
             points, players = np.array(list(zip(*self.state.items())))
-            points_curr = points[players == self.currentPlayer]
-            points_oppo = points[players == 1 - self.currentPlayer]
-            squareState[0][points_curr // self.width, points_curr % self.width] = 1.0
-            squareState[1][points_oppo // self.width, points_oppo % self.width] = 1.0
+            pointsCurrent = points[players == self.currentPlayer]
+            pointsOpposite = points[players == 1 - self.currentPlayer]
+            squareState[0][pointsCurrent // self.width, pointsCurrent % self.width] = 1.0
+            squareState[1][pointsOpposite // self.width, pointsOpposite % self.width] = 1.0
             if self.lastMovePoint != -1:
                 squareState[2][self.lastMovePoint // self.width, self.lastMovePoint % self.width] = 1.0
         if self.currentPlayer == self.startPlayer:
@@ -209,7 +220,7 @@ class Board(object):
             self.__calculateAvailableMoves(self.currentPlayer)
             return self.availables
 
-    def check_board(self, move):
+    def checkBoardEating(self, move):
         """
         花费大量时间才调试到：
         x1 = self.lastMovePoint // self.width
@@ -399,11 +410,11 @@ class Board(object):
         self.state[x1 * self.width + y1] = -1  # 从 x1, y1 走动到 x2, y2
         self.lastMovePoint = point
 
-        self.check_board(move)  # 这里面添加到了move_list
-        if self.currentPlayer == self.players[1]:
-            self.currentPlayer = self.players[0]
+        self.checkBoardEating(move)  # 这里面添加到了move_list
+        if self.currentPlayer == self.playersIndex[1]:
+            self.currentPlayer = self.playersIndex[0]
         else:
-            self.currentPlayer = self.players[1]
+            self.currentPlayer = self.playersIndex[1]
         # Python没有类型不匹配报错，导致我调试了半天2018/5/27
         self.hasCalculated = False  # 盘面更新,则可行走子方式也将待更新,在需要更新时才更新,是为了效率考虑
 
@@ -428,10 +439,10 @@ class Board(object):
                 self.chessManCount[self.currentPlayer] += 1
                 # print("恢复一个{}棋子 in move:{}".format(self.currentPlayer, move))
         # 交换当前棋手
-        if self.currentPlayer == self.players[1]:
-            self.currentPlayer = self.players[0]
+        if self.currentPlayer == self.playersIndex[1]:
+            self.currentPlayer = self.playersIndex[0]
         else:
-            self.currentPlayer = self.players[1]
+            self.currentPlayer = self.playersIndex[1]
         self.hasCalculated = False  # 盘面更新,则可行走子方式也将待更新,在需要更新时才更新,是为了效率考虑
         # 把悔棋的move保存起来
         self.undoMoveList.append(move)
@@ -463,22 +474,28 @@ class Board(object):
     def getCurrentPlayer(self):
         return self.currentPlayer
 
+def moveRecords2moves(moveRecords: list()):
+    r = []
+    for i in range(len(moveRecords)):
+        r.append(moveRecords[i].move)
+    return r
 
 class Game(object):
-    def __init__(self, board, **kwargs):
-        self.board = board
+    def __init__(self, **kwargs):
+        self.board = Board()
+        self.board.initBoard()
         self.boardLineCount = 4  # 棋盘的横纵方向的线条数,横纵都是相等数量的
         self.boardInterval = 100  # 棋盘线条之间的间距值
         self.buttonAreaHeight = 100  # 按钮区域的高度
         self.windowWidth = self.boardLineCount * self.boardInterval  # 窗口的宽度
         self.windowHeight = self.boardLineCount * self.boardInterval + self.buttonAreaHeight  # 窗口的高度
         self.pieceRadius = self.boardInterval * 3 / 10  # 棋子的半径
-        self.is_selected = False  # 当前是否有棋子被选中
+        self.isSelected = False  # 当前是否有棋子被选中
         self.currentSelectedX = -1  # 当前选中棋子的横坐标
         self.currentSelectedY = -1  # 当前选中棋子的纵坐标
         self.hasHumanMoved = False  # 人类棋手是否已经走子
 
-    def graphic(self, board, player1, player2):
+    def printBoard(self, board, player1, player2):
         # os.system("cls")
         print("Player", player1, "with O")
         print("Player", player2, "with X")
@@ -498,27 +515,30 @@ class Game(object):
                     print('_'.center(8), end='')
             print('\r\n\r\n')
 
-    def startSelfPlay(self, player, printMove=1, temperature=1e-3):
-        self.board.initBoard()  # 重新初始化所有棋盘信息
-        p1, p2 = self.board.players
-        trainDatas, mctsProbability, currentPlayers = [], [], []
+    def doOneSelfPlay(self, player, printMove=1, temperature=1e-3):
+        self.board = Board()
+        self.board.initBoard()
+        player1Index, player2Index = self.board.playersIndex
+        states, mctsProbabilities, currentPlayers = [], [], []
         while True:
             move, moveProbabilities = player.getAction(self.board, temperature=temperature, returnProb=1)
-            # store the data
-            trainDatas.append(self.board.generateTrainData())
-            mctsProbability.append(moveProbabilities)
+            # 存储训练数据
+            states.append(self.board.getTrainData())
+            mctsProbabilities.append(moveProbabilities)  # 这里的概率是使用当前的策略网络进行mcts得到的,并且在updateWithMove(move)时选择move加了狄利克雷噪声
             currentPlayers.append(self.board.currentPlayer)
-            # perform a move
+
             self.board.doMove(move)
             if printMove:
-                self.graphic(self.board, p1, p2)
+                self.printBoard(self.board, player1Index, player2Index)
             end, winner = self.board.isGameEnd()
             if end:
-                # winner from the  perspective of the current player of each state
-                winners_z = np.zeros(len(currentPlayers))
+                # 当前玩家的视角下的得分
+                currentPlayersScores = np.zeros(len(currentPlayers))
                 if winner != -1:
-                    winners_z[np.array(currentPlayers) == winner] = 1.0
-                    winners_z[np.array(currentPlayers) != winner] = -1.0
+                    # 胜则计分为+1
+                    currentPlayersScores[np.array(currentPlayers) == winner] = 1.0
+                    # 负则计分为-1
+                    currentPlayersScores[np.array(currentPlayers) != winner] = -1.0
                 # 重置MCTS根节点
                 player.resetRootNode()
                 if printMove:
@@ -526,34 +546,62 @@ class Game(object):
                         print("Game end. Winner is player: ", winner)
                     else:
                         print("Game end. Tie")
-                return winner, zip(trainDatas, mctsProbability, winners_z)
+                # 返回之前将数据存入数据库
+                if winner == 0:
+                    winnerStr = 'black'
+                elif winner == 1:
+                    winnerStr = 'white'
+                else:
+                    winnerStr = 'tie'
+                Util.saveGame(uuid.uuid1(), json.dumps(states, cls=Util.CustomEncoder),
+                              json.dumps(mctsProbabilities, cls=Util.CustomEncoder),
+                              json.dumps(currentPlayersScores, cls=Util.CustomEncoder),
+                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), 'train',
+                              player.getName(), player.getName(), winnerStr,
+                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 1)
+                print("已把一盘对局存入到数据库")
+                # zip函数将构造形为(4*4*4的棋盘状态state, 策略网络概率, 得分)这样的元组
+                return winner, zip(states, mctsProbabilities, currentPlayersScores)
 
-    def startPlay(self, player1, player2, startPlayer=0, printMove=1):
+    def startPlay(self, player1, player2, startPlayer=0, printMove=1, type='play'):
         """
         启动两个玩家的游戏
         """
         if startPlayer not in (0, 1):
             raise Exception('startPlayer should be 0 (player1 first) or 1 (player2 first)')
-        self.board.initBoard(startPlayer)  # 重新初始化所有棋盘信息
-        p1, p2 = self.board.players
-        player1.setPlayerIndex(p1)
-        player2.setPlayerIndex(p2)
-        players = {p1: player1, p2: player2}
+        self.board = Board()
+        self.board.initBoard(startPlayer)
+        player1Index, player2Index = self.board.playersIndex
+        player1.setPlayerIndex(player1Index)
+        player2.setPlayerIndex(player2Index)
+        playersMap = {player1Index: player1, player2Index: player2}
         if printMove:
-            self.graphic(self.board, player1.player, player2.player)
+            self.printBoard(self.board, player1.player, player2.player)
         while (1):
             currentPlayer = self.board.getCurrentPlayer()
-            player_in_turn = players[currentPlayer]
-            move = player_in_turn.getAction(self.board)
+            turnedPlayer = playersMap[currentPlayer]
+            move = turnedPlayer.getAction(self.board)
 
             self.board.doMove(move)
             if printMove:
-                self.graphic(self.board, player1.player, player2.player)
+                self.printBoard(self.board, player1.player, player2.player)
             end, winner = self.board.isGameEnd()
             if end:
                 if printMove:
                     if winner != -1:
-                        print("Game end. Winner is", players[winner])
+                        print("Game end. Winner is", playersMap[winner])
                     else:
                         print("Game end. Tie")
+                # 返回之前将数据存入数据库
+                if winner == 0:
+                    winnerStr = 'black'
+                elif winner == 1:
+                    winnerStr = 'white'
+                else:
+                    winnerStr = 'tie'
+                Util.saveGame(uuid.uuid1(), '', '', '',
+                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), type,
+                              player1.getName(), player2.getName(), winnerStr,
+                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0)
+                print("已把一盘对局存入到数据库")
                 return winner

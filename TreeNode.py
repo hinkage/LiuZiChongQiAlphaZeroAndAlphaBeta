@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class TreeNode(object):
     """
     蒙特卡诺搜索树中的结点.每个结点跟踪它自己的值Q,先验概率P,和它自己被访问次数的调整先验分值u.
@@ -7,21 +8,21 @@ class TreeNode(object):
 
     def __init__(self, parent, prior_p):
         self._parent = parent
-        self._children = {}  # a map from action to TreeNode
+        self._children = {}  # move -> treeNode
         self.visitedTimes = 0
         self._Q = 0
         self._u = 0
         self._P = prior_p
 
-    def expand(self, action_priors):
+    def expand(self, actionPriors):
         """
         创建新的子结点来拓展搜索树.
 
-        :param action_priors: policy函数的输出: 依据policy function得到的由action到其先验概率的元组构成的列表.
+        :param actionPriors: 策略函数的输出: 依据策略函数得到的由action到其先验概率的元组构成的列表.
         """
-        for action, prob in action_priors:
+        for action, probability in actionPriors:
             if action not in self._children:
-                self._children[action] = TreeNode(self, prob)
+                self._children[action] = TreeNode(self, probability)
 
     def select(self, polynomialUpperConfidenceTreesConstant):
         """
@@ -29,7 +30,8 @@ class TreeNode(object):
 
         :return: (action, nextNode)的元组
         """
-        return max(self._children.items(), key=lambda actionNode: actionNode[1].getNodeValue(polynomialUpperConfidenceTreesConstant))
+        return max(self._children.items(),
+                   key=lambda actionNode: actionNode[1].getNodeValue(polynomialUpperConfidenceTreesConstant))
 
     def update(self, leafValue):
         """
@@ -54,19 +56,18 @@ class TreeNode(object):
     def getNodeValue(self, polynomialUpperConfidenceTreesConstant):
         """
         计算并返回该结点的值: 这个值结合了叶子结点计算值,Q,和这个结点的对访问次数的先验调整值,u
+
         @:param polynomialUpperConfidenceTreesConstant 在(0, inf)区间上的一个控制各个值相对影响的数字, Q和先验概率,P,在这个结点的分数.
-        Calculate and return the value for this node: a combination of leaf evaluations, Q, and
-        this node's prior adjusted for its visit count, u
-        polynomialUpperConfidenceTreesConstant -- a number in (0, inf) controlling the relative impact of values, Q, and
-            prior probability, P, on this node's score.
         """
-        self._u = polynomialUpperConfidenceTreesConstant * self._P * np.sqrt(self._parent.visitedTimes) / (1 + self.visitedTimes)
+        self._u = polynomialUpperConfidenceTreesConstant * self._P * np.sqrt(self._parent.visitedTimes) / (
+                1 + self.visitedTimes)
         return self._Q + self._u
 
     def isLeafNode(self):
-        """Check if leaf node (i.e. no nodes below this have been expanded).
+        """
+        无子结点的就是叶子结点
         """
         return self._children == {}
 
     def isRootNode(self):
-        return self._parent is None
+        return self._parent is None  # None是一个常量,id是一样的

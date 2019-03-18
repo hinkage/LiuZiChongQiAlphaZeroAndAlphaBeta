@@ -6,10 +6,15 @@
 """
 
 from __future__ import print_function
+
+import json
+
 import PolicyValueNet
 import random
 import numpy as np
 from collections import defaultdict, deque
+
+import Util
 from BoardGL import Board, Game
 from PolicyValueNet import PolicyValueNet
 from PureMCTS import PureMCTSPlayer as PurePlayer
@@ -21,9 +26,7 @@ class TrainPipeline():
         # 棋盘和游戏
         self.boardWidth = 4
         self.boardHeight = 4
-        self.board = Board(width=self.boardWidth, height=self.boardHeight)
-        self.board.initBoard()
-        self.game = Game(self.board)
+        self.game = Game()
         # 训练参数
         self.learningRate = 5e-3
         self.learningRateMultiplier = 1.0  # 自适应
@@ -31,132 +34,161 @@ class TrainPipeline():
         self.playoutTimes = 500  # 模拟次数
         self.polynomialUpperConfidenceTreesConstant = 5  # 论文中的c_puct, 含义见参考资料.txt第2条
         self.dataDequeSize = 10000
-        self.trainBatchSize = 512  # 训练批次尺寸
-        self.dataDeque = deque(maxlen=self.dataDequeSize)
+        self.trainBatchSize = 512  # 训练批次尺寸,原本为512,先使用50用于调试
+        self.dataDeque = deque(maxlen=self.dataDequeSize)  # 超出maxlen会自动删除另一边的元素
         self.playBatchSize = 1
-        self.epochs = 5  # 每次更新的train_steps数量
-        self.kl_targ = 0.025
-        self.checkFrequency = 100
-        self.gameBatchNumber = 1500
+        self.epochs = 5  # 单次训练拟合多少次
+        self.klParameter = 0.025
+        self.checkFrequency = 100 # 之前为100,调试改为3
+        self.gameBatchSize = 1500
         self.maxWinRatio = 0.0
         self.pureMctsPlayoutTimes = 500
+        self.modelPath = modelPath
         if modelPath:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight, modelPath=modelPath)
         else:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight)
+            self.readDBIndex = 0
         self.zeroPlayer = ZeroPlayer(self.policyValueNet.policyValueFunction,
-                                      polynomialUpperConfidenceTreesConstant=self.polynomialUpperConfidenceTreesConstant,
-                                      playoutTimes=self.playoutTimes, isSelfPlay=1)
+                                     polynomialUpperConfidenceTreesConstant=self.polynomialUpperConfidenceTreesConstant,
+                                     playoutTimes=self.playoutTimes, isSelfPlay=1)
 
-    def get_equi_data(self, play_data):
+    def generateEquivalentData(self, stateProbScore):
         """
         生成等价数据,这是为了加快训练速度. 旋转,左右翻转,可得到8组等价数据
-        augment the data set by rotation and flipping
-        play_data: [(state, mcts_prob, winner_z), ..., ...]"""
-        extend_data = []
-        for state, mcts_porb, winner in play_data:
+        分值不用旋转,它是针对整个盘面的一个标量
+
+        :param stateProbScore: 元组列表[(states, mctsProbabilities, scores), ..., ...]"""
+        extendedData = []
+        for states, probabilities, scores in stateProbScore:
             for i in [1, 2, 3, 4]:
-                # rotate counterclockwise
-                equi_state = np.array([np.rot90(s, i) for s in state])
-                equi_mcts_prob = np.rot90(np.flipud(mcts_porb.reshape(self.boardHeight, self.boardWidth, 4)), i)
-                extend_data.append((equi_state, np.flipud(equi_mcts_prob).flatten(), winner))
-                # flip horizontally
-                equi_state = np.array([np.fliplr(s) for s in equi_state])
-                equi_mcts_prob = np.fliplr(equi_mcts_prob)
-                extend_data.append((equi_state, np.flipud(equi_mcts_prob).flatten(), winner))
-        return extend_data
+                # 逆时针旋转
+                equivalentState = np.array([np.rot90(state, i) for state in states])
+                # 这里的4的含义是每个点有4个方向可以走动,这里一共有16个点,下面会在boardHeight的方向上翻转
+                equivalentProbabilities = np.rot90(
+                    np.flipud(probabilities.reshape(self.boardHeight, self.boardWidth, 4)), i)
+                # 概率先上下翻转,因为之前的棋盘状态是上下翻转了的,这里需要保持一致
+                extendedData.append((equivalentState, np.flipud(equivalentProbabilities).flatten(), scores))
+                # 水平翻转
+                equivalentState = np.array([np.fliplr(state) for state in equivalentState])
+                equivalentProbabilities = np.fliplr(equivalentProbabilities)
+                extendedData.append((equivalentState, np.flipud(equivalentProbabilities).flatten(), scores))
+        return extendedData
 
-    def collect_selfplay_data(self, n_games=1):
-        """collect self-play data for training"""
+    def collectOneSelfPlayData(self, n_games=1):
+        """收集训练数据"""
         for i in range(n_games):
-            winner, play_data = self.game.startSelfPlay(self.zeroPlayer, printMove=False, temperature=self.temperature)
-            play_data = list(play_data)[:]
-            self.episode_len = len(play_data)
-            # augment the data
-            play_data = self.get_equi_data(play_data)
-            self.dataDeque.extend(play_data)
+            _, stateProbScore = self.game.doOneSelfPlay(self.zeroPlayer, printMove=True,
+                                                             temperature=self.temperature)
+            stateProbScore = list(stateProbScore)[:]
+            self.episodeSize = len(stateProbScore)
+            # 用等价数据增加训练数据量
+            stateProbScore = self.generateEquivalentData(stateProbScore)
+            self.dataDeque.extend(stateProbScore)
 
-    def policy_update(self):
-        """update the policy-value net"""
-        mini_batch = random.sample(self.dataDeque, self.trainBatchSize)
-        batchData = [data[0] for data in mini_batch]
-        mcts_probs_batch = [data[1] for data in mini_batch]
-        batchScore = [data[2] for data in mini_batch]
-        old_probs, old_v = self.policyValueNet.policyValueFunction(batchData)
+    def updatePolicy(self):
+        """更新策略网络"""
+        batchSample = random.sample(self.dataDeque, self.trainBatchSize)
+        batchState = [stateProbScore[0] for stateProbScore in batchSample]
+        batchProbability = [data[1] for data in batchSample]
+        batchScore = [data[2] for data in batchSample]
+        oldProbability, oldScore = self.policyValueNet.doPolicyValueFunction(batchState)
         for i in range(self.epochs):
-            loss, entropy = self.policyValueNet.doOneTrain(batchData, mcts_probs_batch, batchScore,
-                                                             self.learningRate * self.learningRateMultiplier)
-            new_probs, new_v = self.policyValueNet.policyValueFunction(batchData)
-            kl = np.mean(np.sum(old_probs * (np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)), axis=1))
-            if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
+            loss, entropy = self.policyValueNet.doOneTrain(batchState, batchProbability, batchScore,
+                                                           self.learningRate * self.learningRateMultiplier)
+            newProbability, newScore = self.policyValueNet.doPolicyValueFunction(batchState)
+            kl = np.mean(np.sum(oldProbability * (np.log(oldProbability + 1e-10) - np.log(newProbability + 1e-10)), axis=1))
+            if kl > self.klParameter * 4:  # 如果D_KL发生严重分歧,提早停止
                 break
-        # adaptively adjust the learning rate
-        if kl > self.kl_targ * 2 and self.learningRateMultiplier > 0.1:
+        # 自适应地调整学习率
+        if kl > self.klParameter * 2 and self.learningRateMultiplier > 0.1:
             self.learningRateMultiplier /= 1.5
-        elif kl < self.kl_targ / 2 and self.learningRateMultiplier < 10:
+        elif kl < self.klParameter / 2 and self.learningRateMultiplier < 10:
             self.learningRateMultiplier *= 1.5
-
-        explained_var_old = 1 - np.var(np.array(batchScore) - old_v.flatten()) / np.var(np.array(batchScore))
-        explained_var_new = 1 - np.var(np.array(batchScore) - new_v.flatten()) / np.var(np.array(batchScore))
+        # 方差
+        explainedVarianceOld = 1 - np.var(np.array(batchScore) - oldScore.flatten()) / np.var(np.array(batchScore))
+        explainedVarianceNew = 1 - np.var(np.array(batchScore) - newScore.flatten()) / np.var(np.array(batchScore))
         print(
-            "kl:{:.5f},lr_multiplier:{:.3f},loss:{},entropy:{},explained_var_old:{:.3f},explained_var_new:{:.3f}".format(
-                kl, self.learningRateMultiplier, loss, entropy, explained_var_old, explained_var_new))
+            "kl:{:.5f},lrMultiplier:{:.3f},loss:{},entropy:{},explainedVarianceOld:{:.3f},explainedVarianceNew:{:.3f}".format(
+                kl, self.learningRateMultiplier, loss, entropy, explainedVarianceOld, explainedVarianceNew))
         return loss, entropy
 
-    def policy_evaluate(self, n_games=10):
+    def policyEvaluate(self, times=10):
         """
-        Evaluate the trained policy by playing games against the pure MCTS player
-        Note: this is only for monitoring the progress of training
+        通过与纯MCTS玩家对弈来评估策略网络,这仅用于监控训练的进度
         """
-        cur_zero_player = ZeroPlayer(self.policyValueNet.policyValueFunction,
-                                     polynomialUpperConfidenceTreesConstant=self.polynomialUpperConfidenceTreesConstant,
-                                     playoutTimes=self.playoutTimes)
-        pure_mcts_player = PurePlayer(polynomialUpperConfidenceTreesConstant=5, playoutTimes=self.pureMctsPlayoutTimes)
-        win_cnt = defaultdict(int)
-        for i in range(n_games):
-            # 这里有个bug，评估的时候start_player是0，1互换的，这就导致白棋先行，而这是训练时没有产生的情况
-            # 所以这里把winner = self.game.startPlay(cur_zero_player, pure_mcts_player, startPlayer=i%2, printMove=1)改为如下代码：
+        zeroPlayer = ZeroPlayer(self.policyValueNet.policyValueFunction,
+                                polynomialUpperConfidenceTreesConstant=self.polynomialUpperConfidenceTreesConstant,
+                                playoutTimes=self.playoutTimes)
+        purePlayer = PurePlayer(polynomialUpperConfidenceTreesConstant=5, playoutTimes=self.pureMctsPlayoutTimes)
+        winTimes = defaultdict(int)
+        for i in range(times):
+            # 这里把startPlayer=i%2改为=0,即永远黑棋先行,因为训练时一直都是黑棋先行,没有执白且白棋先行这种情况,而先行方又是输入参数之一
             if 0 == i % 2:
-                winner = self.game.startPlay(cur_zero_player, pure_mcts_player, startPlayer=0, printMove=1)
+                winner = self.game.startPlay(zeroPlayer, purePlayer, startPlayer=0, printMove=1, type='evaluation')
             else:
-                winner = self.game.startPlay(pure_mcts_player, cur_zero_player, startPlayer=0, printMove=1)
-            if winner == -1:
-                win_cnt[-1] += 1
-            elif winner == 0:
+                winner = self.game.startPlay(purePlayer, zeroPlayer, startPlayer=0, printMove=1, type='evaluation')
+            if winner == -1:  # 平局
+                winTimes['tie'] += 1
+            elif winner == 0:  # 黑棋胜
                 if 0 == i % 2:
-                    win_cnt[0] += 1
+                    winTimes['zero'] += 1
                 else:
-                    win_cnt[1] += 1
-            else:
+                    winTimes['pure'] += 1
+            else:  # 白棋胜
                 if 0 == i % 2:
-                    win_cnt[1] += 1
+                    winTimes['pure'] += 1
                 else:
-                    win_cnt[0] += 1
-        win_ratio = 1.0 * (win_cnt[0] + 0.5 * win_cnt[-1]) / n_games
-        print("num_playouts:{}, win: {}, lose: {}, tie:{}".format(self.pureMctsPlayoutTimes, win_cnt[0], win_cnt[1],
-                                                                  win_cnt[-1]))
-        return win_ratio
+                    winTimes['zero'] += 1
+        winRatio = 1.0 * (winTimes['zero'] + 0.5 * winTimes['tie']) / times
+        print("PlayoutTimes:{}, win: {}, lose: {}, tie:{}".format(self.pureMctsPlayoutTimes, winTimes['zero'], winTimes['pure'],
+                                                                  winTimes['tie']))
+        return winRatio
+
+    def toListOfNumpyArray(self, lst:list):
+        for i in range(len(lst)):
+            lst[i] = np.array(lst[i])
+        return lst
+
+    def trainByDataFromDB(self):
+        gameDatas = Util.readGameFromDB(readAll=True)
+        print(gameDatas)
+        for i in range(len(gameDatas)):
+            gameData = gameDatas[i]
+            states = self.toListOfNumpyArray(json.loads(gameData[1]))
+            probabilities = self.toListOfNumpyArray(json.loads(gameData[2]))
+            scores = np.array(json.loads(gameData[3]))
+            stateProbScore = zip(states, probabilities, scores)
+            stateProbScore = list(stateProbScore)[:]
+            self.episodeSize = len(stateProbScore)
+            # 用等价数据增加训练数据量
+            stateProbScore = self.generateEquivalentData(stateProbScore)
+            self.dataDeque.extend(stateProbScore)
+            print("Train from DB Batch i:{}, episodeSize:{}".format(i + 1, self.episodeSize))
+            if len(self.dataDeque) > self.trainBatchSize:
+                self.updatePolicy()
 
     def run(self):
         """运行训练流水线"""
         try:
-            for i in range(self.gameBatchNumber):
-                self.collect_selfplay_data(self.playBatchSize)
-                print("batch i:{}, episode_len:{}".format(i + 1, self.episode_len))
+            if (self.modelPath is None):  # 如果没有指定模型文件,则先把数据库里的数据拿来训练
+                self.trainByDataFromDB()
+            for i in range(self.gameBatchSize):
+                self.collectOneSelfPlayData(self.playBatchSize)
+                print("Batch i:{}, episodeSize:{}".format(i + 1, self.episodeSize))
                 if len(self.dataDeque) > self.trainBatchSize:
-                    loss, entropy = self.policy_update()
-                # check the performance of the current model，and save the model params
+                    self.updatePolicy()
+                # 检查当前模型的性能，并保存模型参数
                 if (i + 1) % self.checkFrequency == 0:
-                    print("current self-play batch: {}".format(i + 1))
-                    # 这里有个bug，评估的时候start_player是0，1互换的，这就导致白棋先行，而这是训练时没有产生的情况
-                    win_ratio = self.policy_evaluate()
-                    self.policyValueNet.saveModel('./current_policy.model')  # save model param to file
-                    if win_ratio >= self.maxWinRatio:  # >改为>=
-                        print("New best policy!!!!!!!!")
-                        self.maxWinRatio = win_ratio
-                        self.policyValueNet.saveModel('./best_policy.model')  # update the best_policy
+                    print("Self play batch: {}".format(i + 1))
+                    # 这里有个bug,评估的时候start_player是0,1互换的,这就导致白棋先行,而这是训练时没有产生的情况,其实规定先行方只能是黑棋,是完全合理的
+                    winRatio = self.policyEvaluate()
+                    self.policyValueNet.saveModel(Util.getNoloopCurrentPolicyModelPath())  # 将模型参数保存到文件
+                    if winRatio >= self.maxWinRatio:  # >改为>=
+                        print("New best policy with win ratio: {}".format(winRatio))
+                        self.maxWinRatio = winRatio
+                        self.policyValueNet.saveModel(Util.getNoloopBestPolicyModelPath())  # 更新最好的模型
                         if self.maxWinRatio == 1.0 and self.pureMctsPlayoutTimes < 5000:
-                            # self.pureMctsPlayoutTimes += 1000先改为500
                             self.pureMctsPlayoutTimes += 500
                             self.maxWinRatio = 0.0
         except KeyboardInterrupt:
@@ -164,6 +196,6 @@ class TrainPipeline():
 
 
 if __name__ == '__main__':
-    # trainPipeline = TrainPipeline(modelPath='./current_policy.model')
+    # trainPipeline = TrainPipeline(modelPath=Util.getNoloopCurrentPolicyModelPath())
     trainPipeline = TrainPipeline(modelPath=None)
-    trainPipeline.run()
+    trainPipeline.policyEvaluate()
