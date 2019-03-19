@@ -8,6 +8,7 @@ import numpy as np
 import copy
 
 import BoardGL
+import Util
 from TreeNode import TreeNode
 
 
@@ -96,13 +97,14 @@ class MCTS(object):
 
 
 class AlphaZeroPlayer(object):
-    """基于AlphaZero的AI玩家"""
-    def __init__(self, policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=2000, isSelfPlay=0):
+    """基于AlphaZero的AI玩家,playout固定为500,永不变动"""
+    def __init__(self, policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0):
         self.mcts = MCTS(policyValueFunction, polynomialUpperConfidenceTreesConstant, playoutTimes)
         self.__isSelfPlay = isSelfPlay
 
     def getName(self):
-        return 'AlphaZero'
+        name = 'AlphaZero_' + str(Util.readTrainCount())
+        return name
 
     def setPlayerIndex(self, p):
         self.player = p

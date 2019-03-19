@@ -14,18 +14,28 @@ show databases;
 show tables;
 
 drop table if exists game;
-create table game(
-  uuid char(36) primary key,
-  states text,
-  probabilities text,
-  scores text,
-  moves text,
-  type varchar(20) comment 'train, evaluation, play',
-  black varchar(20) comment 'AlphaZero, AlphaBeta, PureMCTS, Human',
-  white varchar(20) comment 'AlphaZero, AlphaBeta, PureMCTS, Human',
-  winner char(5) comment 'black, white, tie',
-  insert_time datetime,
+create table game (
+  uuid            char(36) primary key,
+  states          mediumtext,
+  probabilities   mediumtext,
+  scores          text,
+  moves           text,
+  moves_length    int,
+  type            varchar(20) comment 'train, evaluation, play',
+  black           varchar(20) comment 'AlphaZero, AlphaBeta, PureMCTS, Human',
+  white           varchar(20) comment 'AlphaZero, AlphaBeta, PureMCTS, Human',
+  winner          char(5) comment 'black, white, tie',
+  insert_time     datetime,
   network_version int comment 'Identify different network'
 );
 
-select * from game order by insert_time asc;
+select count(*)
+from game;
+
+# 训练期间黑棋胜率
+
+select uuid, insert_time, moves_length, type, black, white, winner
+from game
+order by insert_time asc;
+
+# 把之前没有加吃谱个数的数据加上吃谱个数 --> 不太好弄

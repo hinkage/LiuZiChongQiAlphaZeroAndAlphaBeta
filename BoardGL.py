@@ -551,7 +551,7 @@ class Game(object):
                 Util.saveGame(uuid.uuid1(), json.dumps(states, cls=Util.CustomEncoder),
                               json.dumps(mctsProbabilities, cls=Util.CustomEncoder),
                               json.dumps(currentPlayersScores, cls=Util.CustomEncoder),
-                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), 'train',
+                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), len(self.board.moveRecordList), 'train',
                               player.getName(), player.getName(), winnerStr,
                               datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 1)
                 print("已把一盘对局存入到数据库")
@@ -595,7 +595,7 @@ class Game(object):
                 else:
                     winnerStr = 'tie'
                 Util.saveGame(uuid.uuid1(), '', '', '',
-                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), type,
+                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), len(self.board.moveRecordList), type,
                               player1.getName(), player2.getName(), winnerStr,
                               datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0)
                 print("已把一盘对局存入到数据库")

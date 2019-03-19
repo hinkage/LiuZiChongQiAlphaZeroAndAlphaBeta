@@ -24,7 +24,7 @@ class CustomEncoder(json.JSONEncoder):
 
 
 def openConnection():
-    return pymysql.connect("111.230.145.180", "root", "li", "liuzichongqi")
+    return pymysql.connect("localhost", "root", "123456", "liuzichongqi")
 
 
 def closeConnection(con: pymysql.connections.Connection):
@@ -64,22 +64,24 @@ def getCanloopBestPolicyModelPath():
     return './weight/canloop/best_policy.model'
 
 
-def saveGame(uuid, states, probabilities, scores, moves, type, black, white, winner, insertTime, networkVersion):
+def saveGame(uuid, states, probabilities, scores, moves, movesLength, type, black, white, winner, insertTime,
+             networkVersion):
     connection = openConnection()
     cursor = connection.cursor()
     try:
         cursor.execute(
-            "insert into game values('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', {})".format(uuid,
-                                                                                                             states,
-                                                                                                             probabilities,
-                                                                                                             scores,
-                                                                                                             moves,
-                                                                                                             type,
-                                                                                                             black,
-                                                                                                             white,
-                                                                                                             winner,
-                                                                                                             insertTime,
-                                                                                                             networkVersion))
+            "insert into game values('{}', '{}', '{}', '{}', '{}', {}, '{}', '{}', '{}', '{}', '{}', {})".format(uuid,
+                                                                                                                 states,
+                                                                                                                 probabilities,
+                                                                                                                 scores,
+                                                                                                                 moves,
+                                                                                                                 movesLength,
+                                                                                                                 type,
+                                                                                                                 black,
+                                                                                                                 white,
+                                                                                                                 winner,
+                                                                                                                 insertTime,
+                                                                                                                 networkVersion))
         connection.commit()
     except Exception as e:
         print(str(e))
@@ -102,11 +104,54 @@ def readGameFromDB(index=0, readAll=False):
         return row
 
 
-if __name__ == '__main__':
+def readTrainCount():
     connection = openConnection()
     cursor = connection.cursor()
-    cursor.execute("select * from game")
-    row = cursor.fetchone()
-    print(row[4])
-
+    cursor.execute("select count(*) from game where type='train'")
+    cnt = cursor.fetchone()[0]
     closeConnection(connection)
+    return cnt
+
+
+def selectThanUpdate(select: str, update: str):
+    connection = openConnection()
+    cursor = connection.cursor()
+    cursor.execute(select)
+    rows = cursor.fetchall()
+    for i in range(len(rows)):
+        uuid = rows[i][0]
+        cursor.execute(update + "where uuid='{}'".format(uuid))
+    connection.commit()
+    connection.close()
+
+
+def statisticEvaluation():
+    connection = openConnection()
+    cursor = connection.cursor()
+    evaluationBatch = 100
+    while evaluationBatch <= 200:
+        cursor.execute(
+            "select uuid, insert_time, moves_length, type, black, white, winner from game where type='evaluation' and black = 'AlphaZero_{}' and winner = 'black'".format(
+                evaluationBatch))
+        rows = cursor.fetchall()
+        mctsName = rows[0][5]
+        winAsBlackTimes = len(rows)
+        cursor.execute(
+            "select uuid, insert_time, moves_length, type, black, white, winner from game where type='evaluation' and white = 'AlphaZero_{}' and winner = 'white'".format(
+                evaluationBatch))
+        winAsWhiteTimes = len(cursor.fetchall())
+        print("AlphaZero_{} vs {} evaluation win ratio: {}".format(evaluationBatch, mctsName, (winAsBlackTimes + winAsWhiteTimes) / 10.0))
+        evaluationBatch += 100
+    closeConnection(connection)
+
+def statisticBlackWinRate():
+    connectoin = openConnection()
+    cursor = connectoin.cursor()
+    cursor.execute("select (select count(*) from game where type = 'train' and winner = 'black') / (select count(*) from game where type = 'train')")
+    print("Black win ratio in train process: {}".format(cursor.fetchone()[0]))
+    closeConnection(connectoin)
+
+
+if __name__ == '__main__':
+    statisticEvaluation()
+    statisticBlackWinRate()

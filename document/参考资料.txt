@@ -8,3 +8,6 @@ https://medium.com/oracledevs/lessons-from-alphazero-part-3-parameter-tweaking-4
 https://dibyaghosh.com/blog/probability/kldivergence.html
 
 4. polynomial upper confidence trees
+
+5. OpenGL的texture颜色被glColor3f影响
+https://stackoverflow.com/questions/8956736/glcolor-coloring-all-textures

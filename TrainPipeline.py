@@ -40,12 +40,13 @@ class TrainPipeline():
         self.epochs = 5  # 单次训练拟合多少次
         self.klParameter = 0.025
         self.checkFrequency = 100 # 之前为100,调试改为3
-        self.gameBatchSize = 1500
+        self.gameBatchSize = 3000
         self.maxWinRatio = 0.0
         self.pureMctsPlayoutTimes = 500
         self.modelPath = modelPath
         if modelPath:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight, modelPath=modelPath)
+            self.readDBIndex = Util.readTrainCount()
         else:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight)
             self.readDBIndex = 0
@@ -113,9 +114,11 @@ class TrainPipeline():
                 kl, self.learningRateMultiplier, loss, entropy, explainedVarianceOld, explainedVarianceNew))
         return loss, entropy
 
-    def policyEvaluate(self, times=10):
+    def doPolicyEvaluate(self, times=10):
         """
         通过与纯MCTS玩家对弈来评估策略网络,这仅用于监控训练的进度
+        :param zeroPlayerName:
+        :param zeroPlayerName:
         """
         zeroPlayer = ZeroPlayer(self.policyValueNet.policyValueFunction,
                                 polynomialUpperConfidenceTreesConstant=self.polynomialUpperConfidenceTreesConstant,
@@ -152,9 +155,10 @@ class TrainPipeline():
 
     def trainByDataFromDB(self):
         gameDatas = Util.readGameFromDB(readAll=True)
-        print(gameDatas)
+
         for i in range(len(gameDatas)):
             gameData = gameDatas[i]
+            print(gameData)
             states = self.toListOfNumpyArray(json.loads(gameData[1]))
             probabilities = self.toListOfNumpyArray(json.loads(gameData[2]))
             scores = np.array(json.loads(gameData[3]))
@@ -167,35 +171,40 @@ class TrainPipeline():
             print("Train from DB Batch i:{}, episodeSize:{}".format(i + 1, self.episodeSize))
             if len(self.dataDeque) > self.trainBatchSize:
                 self.updatePolicy()
+            self.policyEvaluate(i)
+            self.readDBIndex = i + 1
 
     def run(self):
         """运行训练流水线"""
         try:
             if (self.modelPath is None):  # 如果没有指定模型文件,则先把数据库里的数据拿来训练
                 self.trainByDataFromDB()
-            for i in range(self.gameBatchSize):
+            for i in range(self.readDBIndex, self.gameBatchSize):
                 self.collectOneSelfPlayData(self.playBatchSize)
                 print("Batch i:{}, episodeSize:{}".format(i + 1, self.episodeSize))
                 if len(self.dataDeque) > self.trainBatchSize:
                     self.updatePolicy()
-                # 检查当前模型的性能，并保存模型参数
-                if (i + 1) % self.checkFrequency == 0:
-                    print("Self play batch: {}".format(i + 1))
-                    # 这里有个bug,评估的时候start_player是0,1互换的,这就导致白棋先行,而这是训练时没有产生的情况,其实规定先行方只能是黑棋,是完全合理的
-                    winRatio = self.policyEvaluate()
-                    self.policyValueNet.saveModel(Util.getNoloopCurrentPolicyModelPath())  # 将模型参数保存到文件
-                    if winRatio >= self.maxWinRatio:  # >改为>=
-                        print("New best policy with win ratio: {}".format(winRatio))
-                        self.maxWinRatio = winRatio
-                        self.policyValueNet.saveModel(Util.getNoloopBestPolicyModelPath())  # 更新最好的模型
-                        if self.maxWinRatio == 1.0 and self.pureMctsPlayoutTimes < 5000:
-                            self.pureMctsPlayoutTimes += 500
-                            self.maxWinRatio = 0.0
+                self.policyEvaluate(i)
         except KeyboardInterrupt:
             print('\n\rquit')
 
+    def policyEvaluate(self, index):
+        # 检查当前模型的性能，并保存模型参数
+        self.policyValueNet.saveModel(Util.getNoloopCurrentPolicyModelPath())  # 将模型参数保存到文件
+        if (index + 1) % self.checkFrequency == 0:
+            print("Self play batch: {}".format(index + 1))
+            # 这里有个bug,评估的时候start_player是0,1互换的,这就导致白棋先行,而这是训练时没有产生的情况,其实规定先行方只能是黑棋,是完全合理的
+            winRatio = self.doPolicyEvaluate()
+            if winRatio >= self.maxWinRatio:  # >改为>=
+                print("New best policy with win ratio: {}".format(winRatio))
+                self.maxWinRatio = winRatio
+                self.policyValueNet.saveModel(Util.getNoloopBestPolicyModelPath() + '_' + str(Util.readTrainCount()))  # 更新最好的模型
+                if self.maxWinRatio == 1.0 and self.pureMctsPlayoutTimes < 5000:
+                    self.pureMctsPlayoutTimes += 500
+                    self.maxWinRatio = 0.0
+
 
 if __name__ == '__main__':
-    # trainPipeline = TrainPipeline(modelPath=Util.getNoloopCurrentPolicyModelPath())
-    trainPipeline = TrainPipeline(modelPath=None)
-    trainPipeline.policyEvaluate()
+    trainPipeline = TrainPipeline(modelPath=Util.getNoloopCurrentPolicyModelPath())
+    # trainPipeline = TrainPipeline(modelPath=None)
+    trainPipeline.run()

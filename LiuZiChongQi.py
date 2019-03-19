@@ -284,11 +284,18 @@ def drawButtons():
 
 
 def displayFunction():
+    """
+    解决概率性出现texture被渲染为了纯黑色的问题,见参考资料5
+    :return:
+    """
     # 把整个窗口清除为当前的清除颜色
-    glClear(GL_COLOR_BUFFER_BIT)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glDisable(GL_TEXTURE_2D)
     drawChessBoard()
     drawAllPieces()
+    glEnable(GL_TEXTURE_2D)
+    glColor3f(1.0, 1.0, 1.0)
     drawButtons()
 
     glFlush()
@@ -329,7 +336,7 @@ def openglManLoop(width, height):
     glutMouseFunc(mouseFunction)  # 鼠标事件回调函数
     glutKeyboardFunc(keyboardFunction)  # 键盘事件回调函数
     # init()
-    glClearColor(0.0, 1.0, 0.0, 0.0)  # 黄色
+    glClearColor(0.0, 1.0, 1.0, 0.0)  # 黄色
     glLineWidth(2.0)  # 线条宽度
     glMatrixMode(GL_PROJECTION)  # 投影
     glLoadIdentity()  # 单位矩阵
@@ -362,11 +369,11 @@ def playGame():
     modelPath = Util.getCanloopCurrentPolicyModelPath()
     uiThread()
     try:
-        policyValueNet = PolicyValueNet(width, height, modelPath=modelPath)
-        zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-                                playoutTimes=500, isSelfPlay=0)
-        zeroPlayer1 = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-                                 playoutTimes=500, isSelfPlay=0)
+        # policyValueNet = PolicyValueNet(width, height, modelPath=modelPath)
+        # zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+        #                         playoutTimes=500, isSelfPlay=0)
+        # zeroPlayer1 = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+        #                          playoutTimes=500, isSelfPlay=0)
         humanPlayer = HumanPlayer()
         humanPlayer1 = HumanPlayer()
         pureMCTSPlayer = PureMCTSPlayer(playoutTimes=500)
@@ -381,10 +388,10 @@ def playGame():
         print('\n\rquit')
 
 
-def replayGame():
+def replayGame(index):
     global isReplaying, board, replayMoves
     isReplaying = True
-    replayMoves = json.loads(Util.readGameFromDB(index=1)[4])
+    replayMoves = json.loads(Util.readGameFromDB(index=index)[4])
     print(replayMoves)
     uiThread()
     while True:
@@ -393,6 +400,6 @@ def replayGame():
 
 if __name__ == '__main__':
     game = BoardGL.Game()
-
-    playGame()
-    # replayGame()
+    board = game.board
+    # playGame()
+    replayGame(219)
