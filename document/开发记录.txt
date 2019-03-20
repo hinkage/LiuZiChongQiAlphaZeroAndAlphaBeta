@@ -10,4 +10,7 @@ is_current_black平面记录当前行棋方是不是先手,也即是不是黑棋
 
 2019-03-20
 前面的AlphaZero_0到AlphaZero_239是在win8本机上跑的谱.
+cd /usr/local/python3.6/bin
+./pip3 install -r /home/LiuZiChongQiFinal/requirements.txt
+
 
