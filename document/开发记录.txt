@@ -12,5 +12,5 @@ is_current_black平面记录当前行棋方是不是先手,也即是不是黑棋
 前面的AlphaZero_0到AlphaZero_239是在win8本机上跑的谱.
 cd /usr/local/python3.6/bin
 ./pip3 install -r /home/LiuZiChongQiFinal/requirements.txt
-
-
+发现要去掉其中的OpenGL包,因为在centos环境下会找不到依赖.其实这个包之前在win上也是单独安装的,不是用pip安装的.
+之前好像是一周跑了2000谱,而且是加了100回合即盘和的限制下得到的.现在还不确定需要多少时间.
