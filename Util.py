@@ -24,8 +24,8 @@ class CustomEncoder(json.JSONEncoder):
 
 
 def openConnection():
-    return pymysql.connect("localhost", "root", "123456", "liuzichongqi")
-
+    # return pymysql.connect("localhost", "root", "123456", "liuzichongqi")
+    return pymysql.connect("111.230.145.180", "root", "li", "liuzichongqi")
 
 def closeConnection(con: pymysql.connections.Connection):
     if con:

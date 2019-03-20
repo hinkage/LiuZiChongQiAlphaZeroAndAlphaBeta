@@ -43,6 +43,7 @@ class TrainPipeline():
         self.gameBatchSize = 3000
         self.maxWinRatio = 0.0
         self.pureMctsPlayoutTimes = 500
+        self.maxPureMctsPlayoutTimes = 3000
         self.modelPath = modelPath
         if modelPath:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight, modelPath=modelPath)
@@ -199,7 +200,7 @@ class TrainPipeline():
                 print("New best policy with win ratio: {}".format(winRatio))
                 self.maxWinRatio = winRatio
                 self.policyValueNet.saveModel(Util.getNoloopBestPolicyModelPath() + '_' + str(Util.readTrainCount()))  # 更新最好的模型
-                if self.maxWinRatio == 1.0 and self.pureMctsPlayoutTimes < 5000:
+                if self.maxWinRatio == 1.0 and self.pureMctsPlayoutTimes < self.maxPureMctsPlayoutTimes:
                     self.pureMctsPlayoutTimes += 500
                     self.maxWinRatio = 0.0
 

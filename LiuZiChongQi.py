@@ -402,4 +402,4 @@ if __name__ == '__main__':
     game = BoardGL.Game()
     board = game.board
     # playGame()
-    replayGame(219)
+    replayGame(217)
