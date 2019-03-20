@@ -12,5 +12,28 @@ is_current_black平面记录当前行棋方是不是先手,也即是不是黑棋
 前面的AlphaZero_0到AlphaZero_239是在win8本机上跑的谱.
 cd /usr/local/python3.6/bin
 ./pip3 install -r /home/LiuZiChongQiFinal/requirements.txt
-发现要去掉其中的OpenGL包,因为在centos环境下会找不到依赖.其实这个包之前在win上也是单独安装的,不是用pip安装的.
+发现要去掉其中的PyOpenGL包,因为在centos环境下会找不到依赖.其实这个包之前在win上也是单独安装的,不是用pip安装的.
 之前好像是一周跑了2000谱,而且是加了100回合即盘和的限制下得到的.现在还不确定需要多少时间.
+centos安装依赖完成:
+Installing collected packages: six, absl-py, astor, html5lib, bleach, Pillow, captcha, certifi, pycparser, cffi, chardet, colorama, cssselect, cycler, Cython, gast, grpcio, numpy, h5py, idna, PyYAML, scipy, Keras, kiwisolver, lxml, Markdown, pytz, python-dateutil, pyparsing, matplotlib, mpmath, pandas, prettytable, protobuf, pygame, PyMySQL, python-xlib, pynput, pyquery, urllib3, requests, scikit-learn, selenium, sklearn, splinter, sympy, wheel, tensorboard, termcolor, tensorflow, tensorflow-tensorboard, tqdm
+  Running setup.py install for absl-py ... done
+  Running setup.py install for html5lib ... done
+  Running setup.py install for captcha ... done
+  Running setup.py install for pycparser ... done
+  Running setup.py install for gast ... done
+  Running setup.py install for PyYAML ... done
+  Running setup.py install for mpmath ... done
+  Running setup.py install for prettytable ... done
+  Running setup.py install for sklearn ... done
+  Running setup.py install for splinter ... done
+  Running setup.py install for sympy ... done
+  Running setup.py install for termcolor ... done
+Successfully installed Cython-0.28.3 Keras-2.0.8 Markdown-2.6.11 Pillow-5.2.0 PyMySQL-0.9.3 PyYAML-3.12 absl-py-0.4.1 astor-0.7.1 bleach-1.5.0 captcha-0.2.4 certifi-2018.4.16 cffi-1.11.5 chardet-3.0.4 colorama-0.4.1 cssselect-1.0.3 cycler-0.10.0 gast-0.2.0 grpcio-1.14.2 h5py-2.7.1 html5lib-0.9999999 idna-2.6 kiwisolver-1.0.1 lxml-4.2.4 matplotlib-2.2.2 mpmath-1.0.0 numpy-1.14.5 pandas-0.22.0 prettytable-0.7.2 protobuf-3.6.1 pycparser-2.19 pygame-1.9.3 pynput-1.4 pyparsing-2.2.0 pyquery-1.4.0 python-dateutil-2.7.2 python-xlib-0.25 pytz-2018.4 requests-2.18.4 scikit-learn-0.19.2 scipy-1.0.1 selenium-3.141.0 six-1.11.0 sklearn-0.0 splinter-0.10.0 sympy-1.1.1 tensorboard-1.10.0 tensorflow-1.10.0 tensorflow-tensorboard-0.1.8 termcolor-1.1.0 tqdm-4.23.2 urllib3-1.22 wheel-0.33.1
+
+loss, entropy = self.policyValueNet.doOneTrain(batchState, batchProbability, batchScore,
+                                                           self.learningRate * self.learningRateMultiplier)
+每次重启TrainPipline时,learningRateMultiplier值都会被重设为1,不过这个应该影响不大.
+参考如下资料:
+https://blog.csdn.net/weixin_42840933/article/details/85780125
+使用如下命令让训练流水线在后台运行:
+nohup python3 TrainPipline.py > /dev/null 2>&1 &

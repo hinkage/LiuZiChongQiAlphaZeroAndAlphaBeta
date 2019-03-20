@@ -40,7 +40,7 @@ class TrainPipeline():
         self.epochs = 5  # 单次训练拟合多少次
         self.klParameter = 0.025
         self.checkFrequency = 100 # 之前为100,调试改为3
-        self.gameBatchSize = 3000
+        self.gameBatchSize = 5000
         self.maxWinRatio = 0.0
         self.pureMctsPlayoutTimes = 500
         self.maxPureMctsPlayoutTimes = 3000
