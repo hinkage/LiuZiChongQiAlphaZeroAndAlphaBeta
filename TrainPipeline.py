@@ -80,7 +80,7 @@ class TrainPipeline():
     def collectOneSelfPlayData(self, n_games=1):
         """收集训练数据"""
         for i in range(n_games):
-            _, stateProbScore = self.game.doOneSelfPlay(self.zeroPlayer, printMove=True,
+            _, stateProbScore = self.game.doOneSelfPlay(self.zeroPlayer, printMove=False,
                                                              temperature=self.temperature)
             stateProbScore = list(stateProbScore)[:]
             self.episodeSize = len(stateProbScore)
