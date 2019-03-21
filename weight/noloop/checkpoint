@@ -1,4 +1,2 @@
-model_checkpoint_path: "current_policy"
-all_model_checkpoint_paths: "best_policy_300"
-all_model_checkpoint_paths: "best_policy_400"
-all_model_checkpoint_paths: "current_policy"
+model_checkpoint_path: "best_policy_500"
+all_model_checkpoint_paths: "best_policy_500"
