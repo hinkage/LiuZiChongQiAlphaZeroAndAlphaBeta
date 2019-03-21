@@ -522,7 +522,7 @@ def resetGameAndBoard(index=0, isReplaying=False):
 
 
 if __name__ == '__main__':
-    doPlay = 0
+    doPlay = 1
     if doPlay:
         resetGameAndBoard()
         playGame()
