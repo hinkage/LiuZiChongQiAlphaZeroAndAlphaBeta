@@ -141,8 +141,8 @@ def statisticEvaluation():
     connection = openConnection()
     cursor = connection.cursor()
     evaluationBatch = 100
-    evaluationCount = readGameCount(type='train') / 100 * 100
-    while evaluationBatch <= evaluationCount:
+    evaluationTimes = readGameCount(type='evaluation') / 10 * 100
+    while evaluationBatch <= evaluationTimes:
         cursor.execute(
             "select uuid, insert_time, moves_length, type, black, white, winner from game where type='evaluation' and black = 'AlphaZero_{}' and winner = 'black'".format(
                 evaluationBatch))

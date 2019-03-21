@@ -77,11 +77,10 @@ class TrainPipeline():
                 extendedData.append((equivalentState, np.flipud(equivalentProbabilities).flatten(), scores))
         return extendedData
 
-    def collectOneSelfPlayData(self, n_games=1):
+    def collectOneSelfPlayData(self, times=1):
         """收集训练数据"""
-        for i in range(n_games):
-            _, stateProbScore = self.game.doOneSelfPlay(self.zeroPlayer, printMove=False,
-                                                        temperature=self.temperature)
+        for i in range(times):
+            _, stateProbScore = self.game.doOneSelfPlay(self.zeroPlayer, printMove=False, temperature=self.temperature)
             stateProbScore = list(stateProbScore)[:]
             self.episodeSize = len(stateProbScore)
             # 用等价数据增加训练数据量
@@ -132,9 +131,9 @@ class TrainPipeline():
         for i in range(times):
             # 这里把startPlayer=i%2改为=0,即永远黑棋先行,因为训练时一直都是黑棋先行,没有执白且白棋先行这种情况,而先行方又是输入参数之一
             if 0 == i % 2:
-                winner = self.game.startPlay(zeroPlayer, purePlayer, startPlayer=0, printMove=1, type='evaluation')
+                winner = self.game.startPlay(zeroPlayer, purePlayer, startPlayer=0, printMove=0, type='evaluation')
             else:
-                winner = self.game.startPlay(purePlayer, zeroPlayer, startPlayer=0, printMove=1, type='evaluation')
+                winner = self.game.startPlay(purePlayer, zeroPlayer, startPlayer=0, printMove=0, type='evaluation')
             if winner == -1:  # 平局
                 winTimes['tie'] += 1
             elif winner == 0:  # 黑棋胜

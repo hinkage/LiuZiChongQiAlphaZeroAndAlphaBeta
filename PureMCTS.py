@@ -74,7 +74,7 @@ class MCTS(object):
         # 更新此遍历中的值和访问节点数
         node.updateRecursively(-leafValue)
 
-    def _evaluateRollout(self, board:BoardGL.Board, limit=1000):
+    def _evaluateRollout(self, board: BoardGL.Board, limit=1000):
         """
         模拟走子直到游戏结束，如果当前玩家获胜则返回+1，如果对手获胜则返回-1，如果是平局则返回0。
         """
@@ -143,8 +143,7 @@ class PureMCTSPlayer(object):
             self.mcts.updateWithMove(-1)
             if self.printMove:
                 location = board.move2coordinate(move)
-                print("PureMCTSPlayer choose action: %d,%d to %d,%d\n" % (
-                location[0], location[1], location[2], location[3]))
+                #print("PureMCTSPlayer choose action: {},{} to {},{}\n".format(location[0], location[1], location[2], location[3]))
             return move
         else:
             print("WARNING: the board is full")
