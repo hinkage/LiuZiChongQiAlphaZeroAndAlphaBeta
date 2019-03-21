@@ -74,7 +74,7 @@ class MCTS(object):
         # 更新此遍历中的值和访问节点数
         node.updateRecursively(-leafValue)
 
-    def _evaluateRollout(self, board: BoardGL.Board, limit=1000):
+    def _evaluateRollout(self, board: BoardGL.Board, limit=10000):
         """
         模拟走子直到游戏结束，如果当前玩家获胜则返回+1，如果对手获胜则返回-1，如果是平局则返回0。
         """
