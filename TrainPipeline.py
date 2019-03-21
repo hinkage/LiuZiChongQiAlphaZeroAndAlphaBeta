@@ -15,6 +15,8 @@ import numpy as np
 from collections import defaultdict, deque
 
 import Util
+
+Util.init()
 from BoardGL import Board, Game
 from PolicyValueNet import PolicyValueNet
 from PureMCTS import PureMCTSPlayer as PurePlayer
@@ -195,7 +197,7 @@ class TrainPipeline():
         # 检查当前模型的性能，并保存模型参数
         # self.policyValueNet.saveModel(Util.getNoloopCurrentPolicyModelPath())  # 将模型参数保存到文件
         if (index + 1) % self.checkFrequency == 0:
-            print("Self play batch: {}".format(index + 1))
+            # print("Self play batch: {}".format(index + 1))
             # 这里有个bug,评估的时候start_player是0,1互换的,这就导致白棋先行,而这是训练时没有产生的情况,其实规定先行方只能是黑棋,是完全合理的
             winRatio = self.doPolicyEvaluate()
             if winRatio >= self.maxWinRatio:  # >改为>=

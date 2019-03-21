@@ -97,7 +97,6 @@ class MCTS(object):
 
 class AlphaZeroPlayer(object):
     """基于AlphaZero的AI玩家,playout固定为500,永不变动"""
-
     def __init__(self, policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0):
         self.mcts = MCTS(policyValueFunction, polynomialUpperConfidenceTreesConstant, playoutTimes)
         self.__isSelfPlay = isSelfPlay
@@ -131,8 +130,7 @@ class AlphaZeroPlayer(object):
             moveProbabilities[list(moves)] = probabilities
             if self.__isSelfPlay:
                 # 自我训练需要给探索过程添加狄利克雷噪声
-                move = np.random.choice(moves, p=0.75 * probabilities + 0.25 * np.random.dirichlet(
-                    0.3 * np.ones(len(probabilities))))
+                move = np.random.choice(moves, p=0.75 * probabilities + 0.25 * np.random.dirichlet(0.3 * np.ones(len(probabilities))))
                 # 更新根节点并重用搜索树
                 self.mcts.updateWithMove(move)
             else:
@@ -141,8 +139,7 @@ class AlphaZeroPlayer(object):
                 # 重置根节点
                 self.mcts.updateWithMove(-1)
                 location = board.move2coordinate(move)
-                print("AlphaZeroPlayer choose action: {},{} to {},{}\n".format(location[0], location[1], location[2],
-                                                                               location[3]))
+                # print("AlphaZeroPlayer choose action: {},{} to {},{}\n".format(location[0], location[1], location[2], location[3]))
 
             if returnProb:
                 return move, moveProbabilities
