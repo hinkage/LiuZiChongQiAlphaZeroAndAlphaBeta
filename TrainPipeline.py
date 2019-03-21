@@ -47,10 +47,10 @@ class TrainPipeline():
         self.modelPath = modelPath
         if modelPath:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight, modelPath=modelPath)
-            self.readDBIndex = Util.readGameCount(type='train')
+            self.trainedGameCount = Util.readGameCount(type='train')
         else:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight)
-            self.readDBIndex = 0
+            self.trainedGameCount = 0
         self.zeroPlayer = ZeroPlayer(self.policyValueNet.policyValueFunction,
                                      polynomialUpperConfidenceTreesConstant=self.polynomialUpperConfidenceTreesConstant,
                                      playoutTimes=self.playoutTimes, isSelfPlay=1)
@@ -175,25 +175,25 @@ class TrainPipeline():
             if len(self.dataDeque) > self.trainBatchSize:
                 self.updatePolicy()
             self.policyEvaluate(i)
-            self.readDBIndex = i + 1
+            self.trainedGameCount = i + 1
 
     def run(self):
         """运行训练流水线"""
         try:
             if (self.modelPath is None):  # 如果没有指定模型文件,则先把数据库里的数据拿来训练
                 self.trainByDataFromDB()
-            for i in range(self.readDBIndex, self.gameBatchSize):
-                self.collectOneSelfPlayData(self.playBatchSize)
-                print("Batch i:{}, episodeSize:{}".format(i + 1, self.episodeSize))
-                if len(self.dataDeque) > self.trainBatchSize:
-                    self.updatePolicy()
-                self.policyEvaluate(i)
+            # for i in range(self.trainedGameCount, self.gameBatchSize):
+            #     self.collectOneSelfPlayData(self.playBatchSize)
+            #     print("Batch i:{}, episodeSize:{}".format(i + 1, self.episodeSize))
+            #     if len(self.dataDeque) > self.trainBatchSize:
+            #         self.updatePolicy()
+            self.policyEvaluate(499)
         except KeyboardInterrupt:
             print('\n\rquit')
 
     def policyEvaluate(self, index):
         # 检查当前模型的性能，并保存模型参数
-        self.policyValueNet.saveModel(Util.getNoloopCurrentPolicyModelPath())  # 将模型参数保存到文件
+        # self.policyValueNet.saveModel(Util.getNoloopCurrentPolicyModelPath())  # 将模型参数保存到文件
         if (index + 1) % self.checkFrequency == 0:
             print("Self play batch: {}".format(index + 1))
             # 这里有个bug,评估的时候start_player是0,1互换的,这就导致白棋先行,而这是训练时没有产生的情况,其实规定先行方只能是黑棋,是完全合理的

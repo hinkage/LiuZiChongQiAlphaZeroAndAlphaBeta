@@ -50,5 +50,7 @@ ps -e | grep python
 kill 进程号
 git add -A
 
+win8上的Python版本是3.6.3, centos上的是3.6.2
+
 
 
