@@ -21,7 +21,7 @@ import Util
 
 Util.init()
 
-board = None
+board: BoardGL.Board = None
 game: BoardGL.Game = None
 move = None
 # 实际测试发现,从其它文件import如下dict变量时,只能获取到其静态设置的值,而无法获取到运行时动态添加的那些值
@@ -30,7 +30,9 @@ textureIdDict: dict = {}
 buttons: list = []
 isReplaying = False
 replayMoves = None
+replayMoveIndex = 0
 replayIndex = 0
+replayGameCount = 0
 
 import Button
 
@@ -162,12 +164,12 @@ def mouseFunction(mouseButton, state, x, y):
 
 
 def replayDoNextMove():
-    global board, replayMoves, replayIndex
+    global board, replayMoves, replayMoveIndex
     if len(board.undoMoveList) > 0:
         board.redoMove()
-    elif replayIndex < len(replayMoves):
-        board.doMove(replayMoves[replayIndex])
-        replayIndex += 1
+    elif replayMoveIndex < len(replayMoves):
+        board.doMove(replayMoves[replayMoveIndex], isRedo=True)
+        replayMoveIndex += 1
 
 
 def keyboardFunction(key, x, y):
@@ -181,12 +183,23 @@ def keyboardFunction(key, x, y):
     """
     if not isReplaying:
         if key == bytes("n", encoding='utf-8') or key == bytes("N", encoding='utf-8'):
-            Util.setGlobalVar('wouldGoNext', True)
-    else:
-        if key == bytes("n", encoding='utf-8') or key == bytes("N", encoding='utf-8'):
-            replayDoNextMove()
-        if key == bytes("b", encoding='utf-8') or key == bytes("B", encoding='utf-8'):
-            board.undoMove()
+            pass
+
+
+def specialKeyFunction(key, x, y):
+    global board, replayIndex
+    if key == GLUT_KEY_RIGHT:
+        replayDoNextMove()
+    elif key == GLUT_KEY_LEFT:
+        board.undoMove()
+    elif key == GLUT_KEY_UP:
+        if replayIndex > 0:
+            replayIndex -= 1
+            resetGameAndBoard(replayIndex, True)
+    if key == GLUT_KEY_DOWN:
+        if replayIndex < replayGameCount - 1:
+            replayIndex += 1
+            resetGameAndBoard(replayIndex, True)
 
 
 def drawChessBoard():
@@ -213,17 +226,27 @@ def drawChessBoard():
 
 def drawOnePieces(x, y, radius, color):
     sections = 40
-    twoPI = 2.0 * 3.14159
+    twoPI = 2.0 * 3.1415926
 
-    glBegin(GL_TRIANGLE_FAN)
+    glBegin(GL_TRIANGLE_FAN)  # 从第三个点开始,每点与前一个点和第一个点组合画一个三角形,即扇形连续三角形
     if color == 0:
         glColor3f(0.0, 0.0, 0.0)
     else:
         glColor3f(1.0, 1.0, 1.0)
     for i in range(sections):
         glVertex2f(x + radius * math.cos(i * twoPI / sections), y + radius * math.sin(i * twoPI / sections))
-    glVertex2f(x + radius, y)
     glEnd()
+
+
+def boardXY2glXY(x, y):
+    """
+    gl的绘图坐标系是以左下角为原点
+    :param x: 棋盘坐标x,纵轴
+    :param y: 棋盘坐标y,横轴
+    :return: opengl绘图坐标 x,y
+    """
+    return y * game.boardInterval + game.boardInterval / 2, \
+           x * game.boardInterval + game.boardInterval / 2 + game.buttonAreaHeight
 
 
 def drawAllPieces():
@@ -232,12 +255,75 @@ def drawAllPieces():
     :return:
     """
     # 以左下角为原点,x为横坐标,y为纵坐标
-    for y in range(game.boardLineCount):
-        for x in range(game.boardLineCount):
-            if game.board.state[y * game.board.width + x] != -1:
-                drawOnePieces(x * game.boardInterval + game.boardInterval / 2,
-                              y * game.boardInterval + game.boardInterval / 2 + game.buttonAreaHeight,
-                              game.pieceRadius, game.board.state[y * game.board.width + x])
+    for x in range(game.boardLineCount):
+        for y in range(game.boardLineCount):
+            if game.board.state[x * game.board.width + y] != -1:
+                glX, glY = boardXY2glXY(x, y)
+                drawOnePieces(glX, glY, game.pieceRadius, game.board.state[x * game.board.width + y])
+
+
+def glXY2direction(x1, y1, x2, y2):
+    """
+    3点钟方向为0,顺时针以此类推
+    :param x1:
+    :param y1:
+    :param x2:
+    :param y2:
+    :return:
+    """
+    if y1 == y2:
+        if x1 < x2:
+            return 0
+        else:
+            return 2
+    else:
+        if y1 < y2:
+            return 3
+        else:
+            return 1
+
+
+def drawAvailableMoves():
+    """
+
+    :return:
+    """
+    glColor3f(1.0, 0.0, 0.0)
+    glBegin(GL_LINES)
+    availableMoves = board.getAvailableMoves()
+    for move in availableMoves:
+        x1, y1, x2, y2 = board.move2coordinate(move)
+        glX1, glY1 = boardXY2glXY(x1, y1)
+        glX2, glY2 = boardXY2glXY(x2, y2)
+        middleX = (glX1 + glX2) / 2
+        middleY = (glY1 + glY2) / 2
+        glVertex2f(glX1, glY1)
+        glVertex2f(middleX, middleY)  # 画直线
+        arrowOffsetX = arrowOffsetY = math.fabs(middleX - glX1) / 4
+        if arrowOffsetX == 0:
+            arrowOffsetX = arrowOffsetY = math.fabs(middleY - glY1) / 4
+        direction = glXY2direction(glX1, glY1, glX2, glY2)
+        if direction == 0:
+            arrowX1 = arrowX2 = middleX - arrowOffsetX
+            arrowY1 = middleY + arrowOffsetY
+            arrowY2 = middleY - arrowOffsetY
+        elif direction == 1:
+            arrowX1 = middleX + arrowOffsetX
+            arrowX2 = middleX - arrowOffsetX
+            arrowY1 = arrowY2 = middleY + arrowOffsetY
+        elif direction == 2:
+            arrowX1 = arrowX2 = middleX + arrowOffsetX
+            arrowY1 = middleY - arrowOffsetY
+            arrowY2 = middleY + arrowOffsetY
+        else:  # direction == 3
+            arrowX1 = middleX - arrowOffsetX
+            arrowX2 = middleX + arrowOffsetX
+            arrowY1 = arrowY2 = middleY - arrowOffsetY
+        glVertex2f(middleX, middleY)
+        glVertex2f(arrowX1, arrowY1)
+        glVertex2f(middleX, middleY)
+        glVertex2f(arrowX2, arrowY2)
+    glEnd()
 
 
 def createAndPutTexture(filepath, key: str):
@@ -294,6 +380,7 @@ def displayFunction():
     glDisable(GL_TEXTURE_2D)
     drawChessBoard()
     drawAllPieces()
+    drawAvailableMoves()
     glEnable(GL_TEXTURE_2D)
     glColor3f(1.0, 1.0, 1.0)
     drawButtons()
@@ -306,6 +393,9 @@ def idleFunction():
 
 
 def preBtnClick():
+    Util.setGlobalVar('playing', False)  # 阻止主线程企图修改board的行为
+    global buttons, textureIdDict
+    buttons[2].textureId = textureIdDict['stopping']
     board.undoMove()
 
 
@@ -314,6 +404,17 @@ def nextBtnClick():
         board.redoMove()
     else:
         replayDoNextMove()
+
+
+def playStopBtnClick():
+    global buttons, textureIdDict
+    this: Button.Button = buttons[2]
+    if this.textureId == textureIdDict['stopping']:
+        this.textureId = textureIdDict['playing']
+        Util.setGlobalVar('playing', True)
+    else:
+        this.textureId = textureIdDict['stopping']
+        Util.setGlobalVar('playing', False)
 
 
 def openglManLoop(width, height):
@@ -335,8 +436,9 @@ def openglManLoop(width, height):
     glutIdleFunc(idleFunction)  # 空闲时回调函数
     glutMouseFunc(mouseFunction)  # 鼠标事件回调函数
     glutKeyboardFunc(keyboardFunction)  # 键盘事件回调函数
+    glutSpecialFunc(specialKeyFunction)  # 特殊键回调函数
     # init()
-    glClearColor(0.0, 1.0, 1.0, 0.0)  # 黄色
+    glClearColor(0.7, 0.7, 0.7, 0.0)  # 黄色
     glLineWidth(2.0)  # 线条宽度
     glMatrixMode(GL_PROJECTION)  # 投影
     glLoadIdentity()  # 单位矩阵
@@ -346,14 +448,21 @@ def openglManLoop(width, height):
     glEnable(GL_TEXTURE_2D)
     createAndPutTexture('asset/next.bmp', 'next')
     createAndPutTexture('asset/pre.bmp', 'pre')
+    createAndPutTexture('asset/stopping.bmp', 'stopping')
+    createAndPutTexture('asset/playing.bmp', 'playing')
     # 创建添加button
     global buttons, textureIdDict, board
-    preBtn = Button.Button(155, 50, 205, 100, textureIdDict['pre'])
+    yStart = 50
+    yEnd = 100
+    preBtn = Button.Button(155, yStart, 205, yEnd, textureIdDict['pre'])
     preBtn.setOnClickListener(preBtnClick)
     buttons.append(preBtn)
-    nextBtn = Button.Button(210, 50, 260, 100, textureIdDict['next'])
+    nextBtn = Button.Button(210, yStart, 260, yEnd, textureIdDict['next'])
     nextBtn.setOnClickListener(nextBtnClick)
     buttons.append(nextBtn)
+    playStopBtn = Button.Button(100, yStart, 150, yEnd, textureIdDict['playing'])
+    playStopBtn.setOnClickListener(playStopBtnClick)
+    buttons.append(playStopBtn)
     glutMainLoop()  # 死循环
 
 
@@ -366,14 +475,20 @@ def uiThread():
 
 def playGame():
     width, height = 4, 4
-    modelPath = Util.getCanloopCurrentPolicyModelPath()
     uiThread()
     try:
-        # policyValueNet = PolicyValueNet(width, height, modelPath=modelPath)
-        # zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-        #                         playoutTimes=500, isSelfPlay=0)
-        # zeroPlayer1 = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+        policyValueNet = PolicyValueNet(width, height, modelPath=Util.getCanloopCurrentPolicyModelPath())
+        # policyValueNet1 = PolicyValueNet(width, height, modelPath=Util.getNoloopCurrentPolicyModelPath())
+        zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+                                playoutTimes=500, isSelfPlay=0)
+        zeroPlayer.setName('AlphaZero_2000')
+        zeroPlayer.setNetworkVersion(0)
+
+        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
         #                          playoutTimes=500, isSelfPlay=0)
+        # zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
+        # zeroPlayer1.setNetworkVersion(1)
+
         humanPlayer = HumanPlayer()
         humanPlayer1 = HumanPlayer()
         pureMCTSPlayer = PureMCTSPlayer(playoutTimes=500)
@@ -382,24 +497,39 @@ def playGame():
         alphabetaPlayer1 = AlphaBetaPlayer(level=8)
 
         # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(humanPlayer, humanPlayer1, startPlayer=0, printMove=1, type='play')
+        game.startPlay(alphabetaPlayer, zeroPlayer, startPlayer=0, printMove=1, type='play', board=board)
 
     except KeyboardInterrupt:
         print('\n\rquit')
 
 
-def replayGame(index):
-    global isReplaying, board, replayMoves
+def replayGame():
+    global isReplaying
     isReplaying = True
-    replayMoves = json.loads(Util.readGameFromDB(index=index)[4])
-    print(replayMoves)
     uiThread()
     while True:
         time.sleep(2)
 
 
-if __name__ == '__main__':
+def resetGameAndBoard(index=0, isReplaying=False):
+    global game, board, replayMoves, replayMoveIndex
     game = BoardGL.Game()
     board = game.board
-    # playGame()
-    replayGame(260)
+    if isReplaying:
+        replayMoves = json.loads(Util.readGameFromDB(index=index, type=replayType, onlyMoves=True)[0])
+        replayMoveIndex = 0
+        print(index, replayMoves)
+
+
+if __name__ == '__main__':
+    doPlay = 1
+    if doPlay:
+        resetGameAndBoard()
+        playGame()
+    else:
+        global replayType
+        replayType = 'evaluation'
+        replayGameCount = Util.readGameCount(type=replayType)
+        replayIndex = replayGameCount - 1
+        resetGameAndBoard(index=replayIndex, isReplaying=True)
+        replayGame()

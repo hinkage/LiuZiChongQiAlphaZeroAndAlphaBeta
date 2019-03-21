@@ -157,9 +157,6 @@ class AlphaBetaPlayer:
             print("AlphaBetaPlayer choose action: %d,%d to %d,%d, accessCount: %d\n" % (
             location[0], location[1], location[2], location[3], engine.accessCount))
             print(engine.bestMoveEachLevel)
-        # while not Util.getGlobalVar('wouldGoNext'):
-        #     pass
-        # Util.setGlobalVar('wouldGoNext', False)
         return bestMove
 
     def __str__(self):

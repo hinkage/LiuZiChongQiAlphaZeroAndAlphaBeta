@@ -28,7 +28,9 @@ from game;
 
 # 训练期间黑棋胜率
 
-select uuid, insert_time, moves_length, type, black, white, winner
+select
+       insert_time, moves_length, type, black, white, winner, network_version
 from game
-order by insert_time desc;
+order by insert_time asc;
+
 

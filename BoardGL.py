@@ -10,6 +10,7 @@ from __future__ import print_function
 
 import datetime
 import json
+import time
 import uuid
 
 import numpy as np
@@ -17,6 +18,7 @@ import numpy as np
 import copy
 
 import Util
+from AlphaZero import AlphaZeroPlayer
 
 
 class BoardState(object):
@@ -91,6 +93,7 @@ class Board(object):
         # 两类棋子还存活的个数,最开始都是6个
         self.chessManCount = [6, 6]
         self.lastMovePoint = -1
+        Util.setGlobalVar('playing', True)
 
     def move2coordinate(self, move):
         """
@@ -390,7 +393,9 @@ class Board(object):
                                     moveRecord.rePutPos.append([x1 - 1, y2])
         self.moveRecordList.append(moveRecord)
 
-    def doMove(self, move):
+    def doMove(self, move, isRedo=False):
+        if not Util.getGlobalVar('playing') and not isRedo:
+            return
         self.lastMove = move
         item = BoardState()
         item.currentPlayer = self.currentPlayer
@@ -447,7 +452,7 @@ class Board(object):
             lastUndoMove = self.undoMoveList.pop()
         except:
             return
-        self.doMove(lastUndoMove)
+        self.doMove(lastUndoMove, isRedo=True)
 
     def isGameEnd(self):
         """
@@ -510,7 +515,7 @@ class Game(object):
                     print('_'.center(8), end='')
             print('\r\n\r\n')
 
-    def doOneSelfPlay(self, player, printMove=1, temperature=1e-3):
+    def doOneSelfPlay(self, player:AlphaZeroPlayer, printMove=1, temperature=1e-3):
         self.board = Board()
         self.board.initBoard()
         player1Index, player2Index = self.board.playersIndex
@@ -548,24 +553,29 @@ class Game(object):
                     winnerStr = 'white'
                 else:
                     winnerStr = 'tie'
+                player.setName('AlphaZero_' + str(Util.readGameCount(type='train')))  # 自我训练时存入数据库的名字
+                player.setNetworkVersion(1)
                 Util.saveGame(uuid.uuid1(), json.dumps(states, cls=Util.CustomEncoder),
                               json.dumps(mctsProbabilities, cls=Util.CustomEncoder),
                               json.dumps(currentPlayersScores, cls=Util.CustomEncoder),
                               json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), len(self.board.moveRecordList), 'train',
                               player.getName(), player.getName(), winnerStr,
-                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 1)
+                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), player.getNetworkVersion())
                 print("已把一盘对局存入到数据库")
                 # zip函数将构造形为(4*4*4的棋盘状态state, 策略网络概率, 得分)这样的元组
                 return winner, zip(states, mctsProbabilities, currentPlayersScores)
 
-    def startPlay(self, player1, player2, startPlayer=0, printMove=1, type='play'):
+    def startPlay(self, player1, player2, startPlayer=0, printMove=1, type='play', board:Board=None):
         """
         启动两个玩家的游戏
         """
         if startPlayer not in (0, 1):
             raise Exception('startPlayer should be 0 (player1 first) or 1 (player2 first)')
-        self.board = Board()
-        self.board.initBoard(startPlayer)
+        if board is None:
+            self.board = Board()
+            self.board.initBoard(startPlayer)
+        else:
+            self.board = board
         player1Index, player2Index = self.board.playersIndex
         player1.setPlayerIndex(player1Index)
         player2.setPlayerIndex(player2Index)
@@ -573,6 +583,9 @@ class Game(object):
         if printMove:
             self.printBoard(self.board, player1.player, player2.player)
         while (1):
+            if not Util.getGlobalVar('playing'):
+                time.sleep(0.5)
+                continue
             currentPlayer = self.board.getCurrentPlayer()
             turnedPlayer = playersMap[currentPlayer]
             move = turnedPlayer.getAction(self.board)
@@ -594,9 +607,14 @@ class Game(object):
                     winnerStr = 'white'
                 else:
                     winnerStr = 'tie'
+                networkVersion = -1
+                if isinstance(player1, AlphaZeroPlayer):
+                    networkVersion = player1.getNetworkVersion()
+                if isinstance(player2, AlphaZeroPlayer):
+                    networkVersion = player2.getNetworkVersion()
                 Util.saveGame(uuid.uuid1(), '', '', '',
                               json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), len(self.board.moveRecordList), type,
                               player1.getName(), player2.getName(), winnerStr,
-                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0)
+                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), networkVersion=networkVersion)
                 print("已把一盘对局存入到数据库")
                 return winner

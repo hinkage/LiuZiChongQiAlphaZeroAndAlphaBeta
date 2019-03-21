@@ -89,25 +89,37 @@ def saveGame(uuid, states, probabilities, scores, moves, movesLength, type, blac
     closeConnection(connection)
 
 
-def readGameFromDB(index=0, readAll=False):
+def readGameFromDB(index=0, readAll=False, type=None, onlyMoves=False):
     connection = openConnection()
     cursor = connection.cursor()
+    fields = '*'
+    if onlyMoves:
+        fields = 'moves'
     if readAll:
-        cursor.execute("select * from game order by insert_time asc")
+        if type is None:
+            cursor.execute("select " + fields + " from game order by insert_time asc")
+        else:
+            cursor.execute("select " + fields + " from game where type='{}' order by insert_time asc".format(type))
         rows = cursor.fetchall()
         closeConnection(connection)
         return rows
     else:
-        cursor.execute("select * from game order by insert_time asc limit {}, 1".format(index))
+        if type is None:
+            cursor.execute("select " + fields + " from game order by insert_time asc limit {}, 1".format(index))
+        else:
+            cursor.execute("select " + fields + " from game where type='{}' order by insert_time asc limit {}, 1".format(type, index))
         row = cursor.fetchone()
         closeConnection(connection)
         return row
 
 
-def readTrainCount():
+def readGameCount(type=None):
     connection = openConnection()
     cursor = connection.cursor()
-    cursor.execute("select count(*) from game where type='train'")
+    if type is None:
+        cursor.execute("select count(*) from game")
+    else:
+        cursor.execute("select count(*) from game where type='{}'".format(type))
     cnt = cursor.fetchone()[0]
     closeConnection(connection)
     return cnt
@@ -129,7 +141,8 @@ def statisticEvaluation():
     connection = openConnection()
     cursor = connection.cursor()
     evaluationBatch = 100
-    while evaluationBatch <= 200:
+    evaluationCount = readGameCount(type='train') / 100 * 100
+    while evaluationBatch <= evaluationCount:
         cursor.execute(
             "select uuid, insert_time, moves_length, type, black, white, winner from game where type='evaluation' and black = 'AlphaZero_{}' and winner = 'black'".format(
                 evaluationBatch))
@@ -145,10 +158,18 @@ def statisticEvaluation():
     closeConnection(connection)
 
 def statisticBlackWinRate():
+    trainCount = readGameCount(type='train')
     connectoin = openConnection()
     cursor = connectoin.cursor()
-    cursor.execute("select (select count(*) from game where type = 'train' and winner = 'black') / (select count(*) from game where type = 'train')")
-    print("Black win ratio in train process: {}".format(cursor.fetchone()[0]))
+    length = 100
+    for offset in range(0, trainCount // length):
+        blackWinCount = 0
+        cursor.execute("select winner from game where type = 'train' order by insert_time asc limit {},{}".format(offset * length, length))
+        rows = cursor.fetchall()
+        for i in range(len(rows)):
+            if rows[i][0] == 'black':
+                blackWinCount += 1
+        print(offset * length, offset * length + len(rows), 'black win ratio:', 1.0 * blackWinCount / len(rows))
     closeConnection(connectoin)
 
 

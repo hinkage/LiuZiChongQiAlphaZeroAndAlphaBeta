@@ -39,15 +39,15 @@ class TrainPipeline():
         self.playBatchSize = 1
         self.epochs = 5  # 单次训练拟合多少次
         self.klParameter = 0.025
-        self.checkFrequency = 100 # 之前为100,调试改为3
+        self.checkFrequency = 100  # 之前为100,调试改为3
         self.gameBatchSize = 5000
         self.maxWinRatio = 0.0
-        self.pureMctsPlayoutTimes = 500
+        self.pureMctsPlayoutTimes = 1000  # 初始为500,现在已到1000
         self.maxPureMctsPlayoutTimes = 3000
         self.modelPath = modelPath
         if modelPath:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight, modelPath=modelPath)
-            self.readDBIndex = Util.readTrainCount()
+            self.readDBIndex = Util.readGameCount(type='train')
         else:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight)
             self.readDBIndex = 0
@@ -81,7 +81,7 @@ class TrainPipeline():
         """收集训练数据"""
         for i in range(n_games):
             _, stateProbScore = self.game.doOneSelfPlay(self.zeroPlayer, printMove=False,
-                                                             temperature=self.temperature)
+                                                        temperature=self.temperature)
             stateProbScore = list(stateProbScore)[:]
             self.episodeSize = len(stateProbScore)
             # 用等价数据增加训练数据量
@@ -99,7 +99,8 @@ class TrainPipeline():
             loss, entropy = self.policyValueNet.doOneTrain(batchState, batchProbability, batchScore,
                                                            self.learningRate * self.learningRateMultiplier)
             newProbability, newScore = self.policyValueNet.doPolicyValueFunction(batchState)
-            kl = np.mean(np.sum(oldProbability * (np.log(oldProbability + 1e-10) - np.log(newProbability + 1e-10)), axis=1))
+            kl = np.mean(
+                np.sum(oldProbability * (np.log(oldProbability + 1e-10) - np.log(newProbability + 1e-10)), axis=1))
             if kl > self.klParameter * 4:  # 如果D_KL发生严重分歧,提早停止
                 break
         # 自适应地调整学习率
@@ -124,6 +125,8 @@ class TrainPipeline():
         zeroPlayer = ZeroPlayer(self.policyValueNet.policyValueFunction,
                                 polynomialUpperConfidenceTreesConstant=self.polynomialUpperConfidenceTreesConstant,
                                 playoutTimes=self.playoutTimes)
+        zeroPlayer.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
+        zeroPlayer.setNetworkVersion(1)
         purePlayer = PurePlayer(polynomialUpperConfidenceTreesConstant=5, playoutTimes=self.pureMctsPlayoutTimes)
         winTimes = defaultdict(int)
         for i in range(times):
@@ -145,18 +148,18 @@ class TrainPipeline():
                 else:
                     winTimes['zero'] += 1
         winRatio = 1.0 * (winTimes['zero'] + 0.5 * winTimes['tie']) / times
-        print("PlayoutTimes:{}, win: {}, lose: {}, tie:{}".format(self.pureMctsPlayoutTimes, winTimes['zero'], winTimes['pure'],
+        print("PlayoutTimes:{}, win: {}, lose: {}, tie:{}".format(self.pureMctsPlayoutTimes, winTimes['zero'],
+                                                                  winTimes['pure'],
                                                                   winTimes['tie']))
         return winRatio
 
-    def toListOfNumpyArray(self, lst:list):
+    def toListOfNumpyArray(self, lst: list):
         for i in range(len(lst)):
             lst[i] = np.array(lst[i])
         return lst
 
     def trainByDataFromDB(self):
-        gameDatas = Util.readGameFromDB(readAll=True)
-
+        gameDatas = Util.readGameFromDB(readAll=True, type='train')
         for i in range(len(gameDatas)):
             gameData = gameDatas[i]
             print(gameData)
@@ -199,7 +202,8 @@ class TrainPipeline():
             if winRatio >= self.maxWinRatio:  # >改为>=
                 print("New best policy with win ratio: {}".format(winRatio))
                 self.maxWinRatio = winRatio
-                self.policyValueNet.saveModel(Util.getNoloopBestPolicyModelPath() + '_' + str(Util.readTrainCount()))  # 更新最好的模型
+                self.policyValueNet.saveModel(
+                    Util.getNoloopBestPolicyModelPath() + '_' + str(Util.readGameCount(type='train')))  # 更新最好的模型
                 if self.maxWinRatio == 1.0 and self.pureMctsPlayoutTimes < self.maxPureMctsPlayoutTimes:
                     self.pureMctsPlayoutTimes += 500
                     self.maxWinRatio = 0.0

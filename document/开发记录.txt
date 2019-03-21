@@ -36,4 +36,19 @@ loss, entropy = self.policyValueNet.doOneTrain(batchState, batchProbability, bat
 参考如下资料:
 https://blog.csdn.net/weixin_42840933/article/details/85780125
 使用如下命令让训练流水线在后台运行:
-nohup python3 TrainPipline.py > /dev/null 2>&1 &
+nohup python3 TrainPipeline.py > /home/liuzichongqi.log 2>&1 &
+用jobs -l查看后台任务
+
+2019-03-21
+发现之前这里的一个问题
+gameDatas = Util.readGameFromDB(readAll=True, type='train')
+之前这里没有指定type,那么评测的谱也被吃掉了而且还写到current_policy文件里去了,这些谱肯定是不正常的,不过也只有20个谱,应该影响不大.
+记不清了,可能也没有吃掉这20个谱,因为之后都是直接从文件取现有权重没有从数据库从头训练.不过,即使吃掉了应该也影响不大,更何况可能没有吃掉,
+主要是现在已经有500谱了,不忍心重来.
+
+ps -e | grep python
+kill 进程号
+git add -A
+
+
+

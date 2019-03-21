@@ -8,7 +8,6 @@ import numpy as np
 import copy
 
 import BoardGL
-import Util
 from TreeNode import TreeNode
 
 
@@ -35,7 +34,7 @@ class MCTS(object):
         self._c_puct = polynomialUpperConfidenceTreesConstant
         self._n_playout = playoutTimes
 
-    def __playout(self, board: BoardGL.Board):
+    def __playout(self, board):
         """
         从根到叶子模拟走子，在叶子上获取值并通过其父亲传播回来.棋盘状态会被修改，因此必须提供它的拷贝
 
@@ -101,10 +100,20 @@ class AlphaZeroPlayer(object):
     def __init__(self, policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0):
         self.mcts = MCTS(policyValueFunction, polynomialUpperConfidenceTreesConstant, playoutTimes)
         self.__isSelfPlay = isSelfPlay
+        self.name = ''
+        self.networkVersion = 1
+
+    def setNetworkVersion(self, networkVersion):
+        self.networkVersion = networkVersion
+
+    def getNetworkVersion(self):
+        return self.networkVersion
+
+    def setName(self, name):
+        self.name = name
 
     def getName(self):
-        name = 'AlphaZero_' + str(Util.readTrainCount())
-        return name
+        return self.name
 
     def setPlayerIndex(self, p):
         self.player = p
