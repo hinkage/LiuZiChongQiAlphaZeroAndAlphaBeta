@@ -189,7 +189,10 @@ def keyboardFunction(key, x, y):
 def specialKeyFunction(key, x, y):
     global board, replayIndex
     if key == GLUT_KEY_RIGHT:
-        replayDoNextMove()
+        if isReplaying:
+            replayDoNextMove()
+        else:
+            board.redoMove()
     elif key == GLUT_KEY_LEFT:
         board.undoMove()
     elif key == GLUT_KEY_UP:
@@ -522,7 +525,7 @@ def resetGameAndBoard(index=0, isReplaying=False):
 
 
 if __name__ == '__main__':
-    doPlay = 0
+    doPlay = 1
     if doPlay:
         resetGameAndBoard()
         playGame()

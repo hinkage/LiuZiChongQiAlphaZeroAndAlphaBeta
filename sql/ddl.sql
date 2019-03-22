@@ -16,8 +16,8 @@ create table game (
   moves           text,
   moves_length    int,
   type            varchar(20) comment 'train, evaluation, play',
-  black           varchar(20) comment 'AlphaZero, AlphaBeta, PureMCTS, Human',
-  white           varchar(20) comment 'AlphaZero, AlphaBeta, PureMCTS, Human',
+  black           varchar(20) comment 'AlphaZero, alphaBeta, PureMCTS, Human',
+  white           varchar(20) comment 'AlphaZero, alphaBeta, PureMCTS, Human',
   winner          char(5) comment 'black, white, tie',
   insert_time     datetime,
   network_version int comment 'Identify different network'
