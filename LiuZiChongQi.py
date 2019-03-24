@@ -34,6 +34,8 @@ replayMoveIndex = 0
 replayIndex = 0
 replayGameCount = 0
 
+drawTree = Util.DrawTree()
+
 import Button
 
 
@@ -56,7 +58,7 @@ class HumanPlayer(object):
     def getAction(self, board: BoardGL.Board):
         global move
         while not game.hasHumanMoved:
-            pass
+            time.sleep(0.2)
 
         if move == -1 or move not in board.getAvailableMoves():
             print("invalid move: %s" % move)
@@ -135,6 +137,9 @@ def mouseFunction(mouseButton, state, x, y):
             for button in buttons:
                 button.click(x, game.windowHeight - y)
 
+            if not Util.getGlobalVar('playing'):
+                return
+
             if mapCoordinate(x, y, lst):  # 将屏幕坐标x,y映射为棋盘4*4坐标
                 if (lst[0] >= 0 and lst[1] >= 0):  # 如果不加此条件,则数组取值下标为负数时会抛出异常导致opengl报错
                     xa = int(lst[0])
@@ -158,8 +163,7 @@ def mouseFunction(mouseButton, state, x, y):
 
                             game.hasHumanMoved = True  # 标识人类棋手已经移动过了
                             while game.hasHumanMoved:
-                                pass
-                            # game.board.doMove(move)
+                                time.sleep(0.2)
                             game.isSelected = False
 
 
@@ -415,6 +419,8 @@ def playStopBtnClick():
     if this.textureId == textureIdDict['stopping']:
         this.textureId = textureIdDict['playing']
         Util.setGlobalVar('playing', True)
+        while len(board.undoMoveList):  # 恢复状态,否则会因为historyState没有清除已走过的而有bug
+            board.redoMove()
     else:
         this.textureId = textureIdDict['stopping']
         Util.setGlobalVar('playing', False)
@@ -475,37 +481,6 @@ def uiThread():
     except Exception as e:
         print(e)
 
-
-def playGame():
-    width, height = 4, 4
-    uiThread()
-    try:
-        policyValueNet = PolicyValueNet(width, height, modelPath=Util.getCanloopCurrentPolicyModelPath())
-        # policyValueNet1 = PolicyValueNet(width, height, modelPath=Util.getNoloopCurrentPolicyModelPath())
-        zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-                                playoutTimes=500, isSelfPlay=0)
-        zeroPlayer.setName('AlphaZero_2000')
-        zeroPlayer.setNetworkVersion(0)
-
-        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-        #                          playoutTimes=500, isSelfPlay=0)
-        # zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
-        # zeroPlayer1.setNetworkVersion(1)
-
-        humanPlayer = HumanPlayer()
-        humanPlayer1 = HumanPlayer()
-        pureMCTSPlayer = PureMCTSPlayer(playoutTimes=500)
-        pureMCTSPlayer1 = PureMCTSPlayer(playoutTimes=1000)
-        alphabetaPlayer = AlphaBetaPlayer(level=9)
-        alphabetaPlayer1 = AlphaBetaPlayer(level=8)
-
-        # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(alphabetaPlayer, zeroPlayer, startPlayer=0, printMove=1, type='play', board=board)
-
-    except KeyboardInterrupt:
-        print('\n\rquit')
-
-
 def replayGame():
     global isReplaying
     isReplaying = True
@@ -524,13 +499,44 @@ def resetGameAndBoard(index=0, isReplaying=False):
         print(index, replayMoves)
 
 
+def playGame():
+    width, height = 4, 4
+    uiThread()
+    try:
+        policyValueNet = PolicyValueNet(width, height, modelPath=Util.getCanloopCurrentPolicyModelPath())
+        zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
+        zeroPlayer.setName('AlphaZero_2000')
+        zeroPlayer.setNetworkVersion(0)
+
+        # policyValueNet1 = PolicyValueNet(width, height, modelPath=Util.getNoloopCurrentPolicyModelPath())
+        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
+        # zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
+        # zeroPlayer1.setNetworkVersion(1)
+
+        humanPlayer = HumanPlayer()
+        humanPlayer1 = HumanPlayer()
+        pureMCTSPlayer = PureMCTSPlayer(playoutTimes=500)
+        pureMCTSPlayer1 = PureMCTSPlayer(playoutTimes=1000)
+        alphabetaPlayer = AlphaBetaPlayer(level=9)
+        alphabetaPlayer1 = AlphaBetaPlayer(level=5)
+
+        # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
+        game.startPlay(alphabetaPlayer, zeroPlayer, startPlayer=0, printMove=1, type='play', board=board)
+
+    except KeyboardInterrupt:
+        print('\n\rquit')
+
 if __name__ == '__main__':
     doPlay = 1
+    isObserving = 0
     if doPlay:
+        if isObserving:
+            Util.setGlobalVar('isObserving', True)
+            Util.setGlobalVar('treeData', dict())
+            Util.setGlobalVar('drawTree', drawTree)
         resetGameAndBoard()
         playGame()
     else:
-        global replayType
         replayType = 'evaluation'
         replayGameCount = Util.readGameCount(type=replayType)
         replayIndex = replayGameCount - 1

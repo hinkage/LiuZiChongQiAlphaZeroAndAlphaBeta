@@ -196,27 +196,33 @@ class Board(object):
                     # 北
                     if x1 + 1 < 4 and self.state[(x1 + 1) * self.width + y1] == -1:
                         lst.append((x1 * self.width + y1) * 4 + 3)
-        # 不允许走重复的棋
-        boardState: BoardState
-        for i in range(0, len(self.historyBoardStates) - 1):
-            boardState = self.historyBoardStates[i]
-            if (self.equals(boardState)):
-                lst.remove(boardState.currentMove)
 
-        self.availables = lst
-        self.hasCalculated = True
-        return self.availables
+        if player == self.currentPlayer:
+            # 不允许走重复的棋
+            boardState: BoardState
+            for i in range(0, len(self.historyBoardStates) - 1):
+                boardState = self.historyBoardStates[i]
+                if (self.equals(boardState)):
+                    lst.remove(boardState.currentMove)
+            self.availables = lst
+            self.hasCalculated = True
+            return self.availables
+        else:
+            return lst
 
-    def getAvailableMoves(self):
+    def getAvailableMoves(self, player=None):
         """
         调用doMove,undoMove,redoMove时都会自动调用一次__calculateAvailableMoves,所以使用该方法,不会出错
         :return:
         """
-        if self.hasCalculated:
-            return self.availables
+        if player is None:
+            if self.hasCalculated:
+                return self.availables
+            else:
+                self.__calculateAvailableMoves(self.currentPlayer)
+                return self.availables
         else:
-            self.__calculateAvailableMoves(self.currentPlayer)
-            return self.availables
+            return self.__calculateAvailableMoves(player)
 
     def checkBoardEating(self, move):
         """
@@ -474,11 +480,13 @@ class Board(object):
     def getCurrentPlayer(self):
         return self.currentPlayer
 
+
 def moveRecords2moves(moveRecords: list()):
     r = []
     for i in range(len(moveRecords)):
         r.append(moveRecords[i].move)
     return r
+
 
 class Game(object):
     def __init__(self, **kwargs):
@@ -515,7 +523,7 @@ class Game(object):
                     print('_'.center(8), end='')
             print('\r\n\r\n')
 
-    def doOneSelfPlay(self, player:AlphaZeroPlayer, printMove=1, temperature=1e-3):
+    def doOneSelfPlay(self, player: AlphaZeroPlayer, printMove=1, temperature=1e-3):
         self.board = Board()
         self.board.initBoard()
         player1Index, player2Index = self.board.playersIndex
@@ -524,7 +532,8 @@ class Game(object):
             move, moveProbabilities = player.getAction(self.board, temperature=temperature, returnProb=1)
             # 存储训练数据
             states.append(self.board.getTrainData())
-            mctsProbabilities.append(moveProbabilities)  # 这里的概率是使用当前的策略网络进行mcts得到的,并且在updateWithMove(move)时选择move加了狄利克雷噪声
+            mctsProbabilities.append(
+                moveProbabilities)  # 这里的概率是使用当前的策略网络进行mcts得到的,并且在updateWithMove(move)时选择move加了狄利克雷噪声
             currentPlayers.append(self.board.currentPlayer)
 
             self.board.doMove(move)
@@ -558,14 +567,15 @@ class Game(object):
                 Util.saveGame(uuid.uuid1(), json.dumps(states, cls=Util.CustomEncoder),
                               json.dumps(mctsProbabilities, cls=Util.CustomEncoder),
                               json.dumps(currentPlayersScores, cls=Util.CustomEncoder),
-                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), len(self.board.moveRecordList), 'train',
+                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder),
+                              len(self.board.moveRecordList), 'train',
                               player.getName(), player.getName(), winnerStr,
                               datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), player.getNetworkVersion())
                 print("已把一盘对局存入到数据库")
                 # zip函数将构造形为(4*4*4的棋盘状态state, 策略网络概率, 得分)这样的元组
                 return winner, zip(states, mctsProbabilities, currentPlayersScores)
 
-    def startPlay(self, player1, player2, startPlayer=0, printMove=1, type='play', board:Board=None):
+    def startPlay(self, player1, player2, startPlayer=0, printMove=1, type='play', board: Board = None):
         """
         启动两个玩家的游戏
         """
@@ -613,7 +623,8 @@ class Game(object):
                 if isinstance(player2, AlphaZeroPlayer):
                     networkVersion = player2.getNetworkVersion()
                 Util.saveGame(uuid.uuid1(), '', '', '',
-                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder), len(self.board.moveRecordList), type,
+                              json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder),
+                              len(self.board.moveRecordList), type,
                               player1.getName(), player2.getName(), winnerStr,
                               datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), networkVersion=networkVersion)
                 print("已把一盘对局存入到数据库")

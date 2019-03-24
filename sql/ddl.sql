@@ -33,4 +33,14 @@ select
 from game
 order by insert_time asc;
 
+select black, white, winner from game where type='evaluation' order by insert_time asc;
+
+select max(moves_length) from game;
+
+select
+       insert_time, moves_length, type, black, white, winner, network_version
+from game
+where type='show'
+order by insert_time asc;
+
 
