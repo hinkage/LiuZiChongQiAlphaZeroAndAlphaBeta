@@ -9,8 +9,8 @@ import time
 
 import numpy as np
 import pymysql
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+# import matplotlib.pyplot as plt
+# import matplotlib.animation as animation
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -325,16 +325,16 @@ class DrawTree():
         if not treeData or not len(treeData):
             return
         self.treeData = treeData
-        DrawTree.figure = plt.figure(1, facecolor='white')  # 编号和背景色
+        # DrawTree.figure = plt.figure(1, facecolor='white')  # 编号和背景色
         DrawTree.axes = DrawTree.figure.add_subplot(1, 1, 1)
         # 什么规则,必须有 ani = 这四个字符,否则绘图不执行,即使ani这个变量根本就没有用到过
         # ani = animation.FuncAnimation(DrawTree.figure, self.animate, interval=500)
         self.animate(0)
-        plt.title('AlphaBeta Search Tree')
-        plt.show()
+        # plt.title('AlphaBeta Search Tree')
+        # plt.show()
 
-    def close(self):
-        plt.close()
+    # def close(self):
+    #     plt.close()
 
 
 if __name__ == '__main__':
