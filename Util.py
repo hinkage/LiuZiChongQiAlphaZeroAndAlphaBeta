@@ -14,15 +14,15 @@ import matplotlib.animation as animation
 
 
 class CustomEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
+    def default(self, tree):
+        if isinstance(tree, np.integer):
+            return int(tree)
+        elif isinstance(tree, np.floating):
+            return float(tree)
+        elif isinstance(tree, np.ndarray):
+            return tree.tolist()
         else:
-            return super(CustomEncoder, self).default(obj)
+            return super(CustomEncoder, self).default(tree)
 
 
 def openConnection():
@@ -40,13 +40,13 @@ def init():
     globalVars = {}
 
 
-def setGlobalVar(key, value):
-    globalVars[key] = value
+def setGlobalVar(nodeName, value):
+    globalVars[nodeName] = value
 
 
-def getGlobalVar(key):
+def getGlobalVar(nodeName):
     try:
-        return globalVars[key]
+        return globalVars[nodeName]
     except:
         return None
 
@@ -188,38 +188,59 @@ class DrawTree():
     arrowSetting = dict(arrowstyle="<-")
     figure = None
     axes = None
+    # testData = {
+    #     '1,-1000,1000': {
+    #         "7": {
+    #             "2,-1000,1000": {
+    #                 "32": {
+    #                     "3,-1000,1000": {
+    #                         "0": -8,
+    #                         "10": -10,
+    #                         "11": -8,
+    #                         "16": -4,
+    #                         "19": -6,
+    #                         "30": -8
+    #                     }
+    #                 },
+    #                 "46": {
+    #                     "10,-1000,-4": {
+    #                         "0": 2
+    #                     }
+    #                 },
+    #                 "53": {
+    #                     "12,-1000,-4": {
+    #                         "0": 12
+    #                     }
+    #                 },
+    #                 "57": {
+    #                     "14,-1000,-4": {
+    #                         "0": -2
+    #                     }
+    #                 }
+    #             }
+    #         }
+    #     }
+    # }
+
     testData = {
-        '1,-1000,1000': {
-            "7": {
-                "2,-1000,1000": {
-                    "32": {
-                        "3,-1000,1000": {
-                            "0": -5,
-                            "10": -10,
-                            "11": -5,
-                            "16": 5,
-                            "19": 0,
-                            "30": -5
+        0: {
+            1: {
+                'sub0': {
+                    1: {
+                        'sub1': {
+                            1:1,
+                            2:2
                         }
                     },
-                    "46": {
-                        "10,-1000,5": {
-                            "0": 5
-                        }
-                    },
-                    "53": {
-                        "12,-1000,5": {
-                            "0": 15
-                        }
-                    },
-                    "57": {
-                        "14,-1000,5": {
-                            "0": -5,
-                            "10": -10,
-                            "11": -5,
-                            "20": 10
-                        }
-                    }
+                    2: 2,
+                    3: 3
+                }
+            },
+            2: 2,
+            3: {
+                'sub0': {
+                    1:1,
+                    2:2
                 }
             }
         }
@@ -229,67 +250,66 @@ class DrawTree():
         # DrawTree.axes.set_axis_off()  # 没用?
         self.treeData = None
 
-    def plotNode(self, text: str, startXY, endXY):
-        DrawTree.axes.annotate(text, xy=endXY, xycoords='axes fraction',
-                               xytext=startXY, textcoords='axes fraction',
-                               va='center', ha='center', bbox=DrawTree.nodeSetting,
-                               arrowprops=DrawTree.arrowSetting)
-
-    def getLeavesSize(self, obj: dict):
-        size = 0
-        dict0 = list(obj.keys())
-        dict0key = dict0[0]
-        dict1 = obj[dict0key]
-        for key in dict1.keys():
-            if type(dict1[key]).__name__ == 'dict':
-                size += self.getLeavesSize(dict1[key])
+    def getLeavesSize(self, tree: dict):
+        width = 0
+        nodeNames = list(tree.keys())
+        node0Name = nodeNames[0]
+        subTree = tree[node0Name]
+        for nodeName in subTree.keys():
+            if type(subTree[nodeName]).__name__ == 'dict':
+                width += self.getLeavesSize(subTree[nodeName])
             else:
-                size += 1
-        return size
+                width += 1
+        return width
 
-    def getTreeDepth(self, obj: dict):
+    def getTreeDepth(self, tree: dict):
         maxDepth = 0
-        dict0 = list(obj.keys())
-        dict0key = dict0[0]
-        dict1 = obj[dict0key]
-        for key in dict1.keys():
-            if type(dict1[key]).__name__ == 'dict':
-                currentDepth = 1 + self.getTreeDepth(dict1[key])
+        nodeNames = list(tree.keys())
+        node0Name = nodeNames[0]
+        subTree = tree[node0Name]
+        for nodeName in subTree.keys():
+            if type(subTree[nodeName]).__name__ == 'dict':
+                currentDepth = 1 + self.getTreeDepth(subTree[nodeName])
             else:
                 currentDepth = 1
             if currentDepth > maxDepth:
                 maxDepth = currentDepth
         return maxDepth
 
-    def plotLineText(self, startXY, endXY, text: str):
-        middleX = (startXY[0] + endXY[0]) / 2.0
-        middleY = (startXY[1] + endXY[1]) / 2.0
+    def plotLineText(self, point1XY, point2XY, text: str):
+        middleX = (point1XY[0] + point2XY[0]) / 2.0
+        middleY = (point1XY[1] + point2XY[1]) / 2.0
         DrawTree.axes.text(middleX, middleY, text)
 
-    def plotTree(self, obj: dict, startXY, text: str):
-        size = float(self.getLeavesSize(obj))
-        depth = float(self.getTreeDepth(obj))
-        dict0 = list(obj.keys())
-        dict0key = dict0[0]
+    def plotNode(self, text: str, arrowStartXY, nodeXY):
+        DrawTree.axes.annotate(text, xy=arrowStartXY, xycoords='axes fraction',
+                               xytext=nodeXY, textcoords='axes fraction',
+                               va='center', ha='center', bbox=DrawTree.nodeSetting,
+                               arrowprops=DrawTree.arrowSetting)
 
-        middleXY = (self.offsetX + (1.0 + float(size)) / 2.0 / self.treeWidth, self.offsetY)
-        self.plotLineText(middleXY, startXY, text)
-        self.plotNode(dict0key, middleXY, startXY)
+    def plotTree(self, tree: dict, arrowStartXY, text: str):
+        width = float(self.getLeavesSize(tree))
+        nodeNames = list(tree.keys())
+        node0Name = nodeNames[0]
 
-        dict1 = obj[dict0key]
+        nodeXY = (self.offsetX + (1.0 + float(width)) / (2.0 * self.treeWidth), self.offsetY)
+        self.plotLineText(arrowStartXY, nodeXY, text)
+        self.plotNode(node0Name, arrowStartXY, nodeXY)
+
+        subTree = tree[node0Name]
         self.offsetY = self.offsetY - 1.0 / self.treeHeight
-        for key in dict1.keys():
-            if type(dict1[key]).__name__ == 'dict':
-                self.plotTree(dict1[key], middleXY, str(key))
+        for nodeName in subTree.keys():
+            if type(subTree[nodeName]).__name__ == 'dict':
+                self.plotTree(subTree[nodeName], nodeXY, str(nodeName))
             else:
                 self.offsetX = self.offsetX + 1.0 / self.treeWidth
-                self.plotNode(dict1[key], (self.offsetX, self.offsetY), middleXY)
-                self.plotLineText((self.offsetX, self.offsetY), middleXY, str(key))
+                self.plotNode(subTree[nodeName], nodeXY, (self.offsetX, self.offsetY))
+                self.plotLineText(nodeXY, (self.offsetX, self.offsetY), str(nodeName))
         self.offsetY = self.offsetY + 1.0 / self.treeHeight
 
     def animate(self, i):
-        if len(self.treeData):
-            time.sleep(0.2)
+        if not len(self.treeData):
+            return
         self.resetVars()
         DrawTree.axes.clear()
         self.plotTree(self.treeData, self.startXY, '')
@@ -297,7 +317,7 @@ class DrawTree():
     def resetVars(self):
         self.treeWidth = float(self.getLeavesSize(self.treeData))
         self.treeHeight = float(self.getTreeDepth(self.treeData))
-        self.offsetX = -0.5 / self.treeWidth
+        self.offsetX = -(1.0 / (2.0 * self.treeWidth))
         self.offsetY = 1.0
         self.startXY = (0.5, 1.0)
 
@@ -318,7 +338,7 @@ class DrawTree():
 
 
 if __name__ == '__main__':
-    # statisticEvaluation()
-    # statisticBlackWinRate()
-    drawTree = DrawTree()
-    drawTree.start()
+    statisticEvaluation()
+    statisticBlackWinRate()
+    # drawTree = DrawTree()
+    # drawTree.start()

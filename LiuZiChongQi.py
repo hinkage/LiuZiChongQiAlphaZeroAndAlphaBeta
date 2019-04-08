@@ -503,10 +503,10 @@ def playGame():
     width, height = 4, 4
     uiThread()
     try:
-        policyValueNet = PolicyValueNet(width, height, modelPath=Util.getCanloopCurrentPolicyModelPath())
-        zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
-        zeroPlayer.setName('AlphaZero_2000')
-        zeroPlayer.setNetworkVersion(0)
+        # policyValueNet = PolicyValueNet(width, height, modelPath=Util.getCanloopCurrentPolicyModelPath())
+        # zeroPlayer = ZeroPlayer(policyValueNet.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
+        # zeroPlayer.setName('AlphaZero_2000')
+        # zeroPlayer.setNetworkVersion(0)
 
         # policyValueNet1 = PolicyValueNet(width, height, modelPath=Util.getNoloopCurrentPolicyModelPath())
         # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
@@ -516,18 +516,18 @@ def playGame():
         humanPlayer = HumanPlayer()
         humanPlayer1 = HumanPlayer()
         pureMCTSPlayer = PureMCTSPlayer(playoutTimes=500)
-        pureMCTSPlayer1 = PureMCTSPlayer(playoutTimes=1000)
+        pureMCTSPlayer1 = PureMCTSPlayer(playoutTimes=3000)
         alphabetaPlayer = AlphaBetaPlayer(level=9)
         alphabetaPlayer1 = AlphaBetaPlayer(level=5)
 
         # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(alphabetaPlayer, zeroPlayer, startPlayer=0, printMove=1, type='play', board=board)
+        game.startPlay(alphabetaPlayer, pureMCTSPlayer1, startPlayer=0, printMove=1, type='play', board=board)
 
     except KeyboardInterrupt:
         print('\n\rquit')
 
 if __name__ == '__main__':
-    doPlay = 1
+    doPlay = 0
     isObserving = 0
     if doPlay:
         if isObserving:
@@ -537,7 +537,7 @@ if __name__ == '__main__':
         resetGameAndBoard()
         playGame()
     else:
-        replayType = 'evaluation'
+        replayType = 'show'
         replayGameCount = Util.readGameCount(type=replayType)
         replayIndex = replayGameCount - 1
         resetGameAndBoard(index=replayIndex, isReplaying=True)

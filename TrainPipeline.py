@@ -42,9 +42,9 @@ class TrainPipeline():
         self.epochs = 5  # 单次训练拟合多少次
         self.klParameter = 0.025
         self.checkFrequency = 1000  # 之前为100,改为1000,因为评测太浪费时间
-        self.gameBatchSize = 5000
+        self.gameBatchSize = 10000  # 5000时对mcts1500的胜率为0.9,所以再升到10000
         self.maxWinRatio = 0.0
-        self.pureMctsPlayoutTimes = 1000  # 初始为500,现在已到1000
+        self.pureMctsPlayoutTimes = 1500  # 初始为500,现在已到1500s
         self.pureMctsPlayoutTimesAddend = 500
         self.maxPureMctsPlayoutTimes = 3000
         self.modelPath = modelPath

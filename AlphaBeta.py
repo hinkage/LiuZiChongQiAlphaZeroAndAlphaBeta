@@ -94,7 +94,8 @@ class SearchEngine:
                         nextTreeData = dict()
                         currentTreeData[move] = nextTreeData
                     score = self.alphaBeta(depth + 1, alpha, beta, treeData=nextTreeData)  # 深度优先
-                score = self.alphaBeta(depth + 1, alpha, beta)
+                else:
+                    score = self.alphaBeta(depth + 1, alpha, beta)
                 self.board.undoMove()  #
 
                 self.eachLevelsBestMove.setdefault(depth, move)
@@ -125,7 +126,8 @@ class SearchEngine:
                         nextTreeData = dict()
                         currentTreeData[move] = nextTreeData
                     score = self.alphaBeta(depth + 1, alpha, beta, treeData=nextTreeData)  # 深度优先
-                score = self.alphaBeta(depth + 1, alpha, beta)
+                else:
+                    score = self.alphaBeta(depth + 1, alpha, beta)
                 self.board.undoMove()  #
 
                 self.eachLevelsBestMove.setdefault(depth, move)
