@@ -20,8 +20,7 @@ create table game (
   network_version int comment 'Identify different network'
 );
 
-select count(*)
-from game;
+select count(*) from game;
 
 select
        insert_time, moves_length, type, black, white, winner, network_version
@@ -40,4 +39,6 @@ order by insert_time asc;
 
 select * from game limit 0,5;
 
+# 查询数据库大小
+select concat(round(sum(data_length/1024/1024),2),'MB') as data from information_schema.tables where table_schema='liuzichongqi';
 

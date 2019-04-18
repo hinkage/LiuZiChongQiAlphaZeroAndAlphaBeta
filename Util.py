@@ -9,8 +9,8 @@ import time
 
 import numpy as np
 import pymysql
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+# import matplotlib.pyplot as plt
+# import matplotlib.animation as animation
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -181,51 +181,17 @@ def statisticBlackWinRate():
     closeConnection(connectoin)
 
 
-class DrawTree():
+class DrawTree:
     nodeSetting = dict(boxstyle="round4", fc="0.8")
     arrowSetting = dict(arrowstyle="<-")
     figure = None
     axes = None
-    # testData = {
-    #     '1,-1000,1000': {
-    #         "7": {
-    #             "2,-1000,1000": {
-    #                 "32": {
-    #                     "3,-1000,1000": {
-    #                         "0": -8,
-    #                         "10": -10,
-    #                         "11": -8,
-    #                         "16": -4,
-    #                         "19": -6,
-    #                         "30": -8
-    #                     }
-    #                 },
-    #                 "46": {
-    #                     "10,-1000,-4": {
-    #                         "0": 2
-    #                     }
-    #                 },
-    #                 "53": {
-    #                     "12,-1000,-4": {
-    #                         "0": 12
-    #                     }
-    #                 },
-    #                 "57": {
-    #                     "14,-1000,-4": {
-    #                         "0": -2
-    #                     }
-    #                 }
-    #             }
-    #         }
-    #     }
-    # }
-
     testData = {
-        0: {
+        'root': {
             1: {
                 'sub0': {
                     1: {
-                        'sub1': {
+                        'sub01': {
                             1: 1,
                             2: 2
                         }
@@ -236,7 +202,7 @@ class DrawTree():
             },
             2: 2,
             3: {
-                'sub0': {
+                'sub1': {
                     1: 1,
                     2: 2
                 }
@@ -324,18 +290,18 @@ class DrawTree():
     def start(self, treeData=testData):
         if not treeData or not len(treeData):
             return
-        self.treeData = treeData
-        DrawTree.figure = plt.figure(1, facecolor='white')  # 编号和背景色
-        DrawTree.axes = DrawTree.figure.add_subplot(1, 1, 1)
-        # 什么规则,必须有 ani = 这四个字符,否则绘图不执行,即使ani这个变量根本就没有用到过
-        # ani = animation.FuncAnimation(DrawTree.figure, self.animate, interval=500)
-        self.animate(0)
-        plt.title('AlphaBeta Search Tree')
-        plt.show()
+        # self.treeData = treeData
+        # DrawTree.figure = plt.figure(1, facecolor='white')  # 编号和背景色
+        # DrawTree.axes = DrawTree.figure.add_subplot(1, 1, 1)
+        # # 什么规则,必须有 ani = 这四个字符,否则绘图不执行,即使ani这个变量根本就没有用到过
+        # # ani = animation.FuncAnimation(DrawTree.figure, self.animate, interval=500)
+        # self.animate(0)
+        # plt.title('AlphaBeta Search Tree')
+        # plt.show()
 
-    @staticmethod
-    def close():
-        plt.close()
+    # @staticmethod
+    # def close():
+    #     plt.close()
 
 
 if __name__ == '__main__':

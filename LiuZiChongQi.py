@@ -509,11 +509,11 @@ def playGame():
         # zeroPlayer.setName('AlphaZero_2000')
         # zeroPlayer.setNetworkVersion(0)
 
-        # policyValueNet1 = PolicyValueNet(width, height, modelPath=Util.getNoloopCurrentPolicyModelPath())
-        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-        #                          playoutTimes=500, isSelfPlay=0)
-        # zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
-        # zeroPlayer1.setNetworkVersion(1)
+        policyValueNet1 = PolicyValueNet(width, height, modelPath='./weight/noloop/best_policy_5000')
+        zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+                                 playoutTimes=500, isSelfPlay=0)
+        zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
+        zeroPlayer1.setNetworkVersion(1)
 
         humanPlayer = HumanPlayer()
         humanPlayer1 = HumanPlayer()
@@ -523,7 +523,7 @@ def playGame():
         alphabetaPlayer1 = AlphaBetaPlayer(level=2)
 
         # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(alphabetaPlayer, humanPlayer, startPlayer=0, printMove=1, type='play', board=board)
+        game.startPlay(zeroPlayer1, humanPlayer, startPlayer=0, printMove=1, type='play', board=board)
 
     except KeyboardInterrupt:
         print('\n\rquit')
