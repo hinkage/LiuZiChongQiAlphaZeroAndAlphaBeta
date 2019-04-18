@@ -481,6 +481,7 @@ def uiThread():
     except Exception as e:
         print(e)
 
+
 def replayGame():
     global isReplaying
     isReplaying = True
@@ -509,7 +510,8 @@ def playGame():
         # zeroPlayer.setNetworkVersion(0)
 
         # policyValueNet1 = PolicyValueNet(width, height, modelPath=Util.getNoloopCurrentPolicyModelPath())
-        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
+        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+        #                          playoutTimes=500, isSelfPlay=0)
         # zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
         # zeroPlayer1.setNetworkVersion(1)
 
@@ -517,17 +519,18 @@ def playGame():
         humanPlayer1 = HumanPlayer()
         pureMCTSPlayer = PureMCTSPlayer(playoutTimes=500)
         pureMCTSPlayer1 = PureMCTSPlayer(playoutTimes=3000)
-        alphabetaPlayer = AlphaBetaPlayer(level=9)
-        alphabetaPlayer1 = AlphaBetaPlayer(level=5)
+        alphabetaPlayer = AlphaBetaPlayer(level=8)
+        alphabetaPlayer1 = AlphaBetaPlayer(level=2)
 
         # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(alphabetaPlayer, pureMCTSPlayer1, startPlayer=0, printMove=1, type='play', board=board)
+        game.startPlay(alphabetaPlayer, humanPlayer, startPlayer=0, printMove=1, type='play', board=board)
 
     except KeyboardInterrupt:
         print('\n\rquit')
 
+
 if __name__ == '__main__':
-    doPlay = 0
+    doPlay = 1
     isObserving = 0
     if doPlay:
         if isObserving:

@@ -199,10 +199,9 @@ class Board(object):
 
         if player == self.currentPlayer:
             # 不允许走重复的棋
-            boardState: BoardState
             for i in range(0, len(self.historyBoardStates) - 1):
-                boardState = self.historyBoardStates[i]
-                if (self.equals(boardState)):
+                boardState: BoardState = self.historyBoardStates[i]
+                if self.equals(boardState):
                     lst.remove(boardState.currentMove)
             self.availables = lst
             self.hasCalculated = True
@@ -212,7 +211,7 @@ class Board(object):
 
     def getAvailableMoves(self, player=None):
         """
-        调用doMove,undoMove,redoMove时都会自动调用一次__calculateAvailableMoves,所以使用该方法,不会出错
+        调用doMove,undoMove,redoMove时都会把self.hasCalculated置为False,所以使用该方法,不会出错
         :return:
         """
         if player is None:
@@ -505,10 +504,7 @@ class Game(object):
 
     def printBoard(self, board, player1, player2):
         # os.system("cls")
-        print("Player", player1, "with O")
-        print("Player", player2, "with X")
-        for x in range(self.boardLineCount):
-            print("{0:8}".format(x), end='')
+        print("Player", player1, "with O", ", Player", player2, "with X")
         print('\r\n')
         for i in range(self.boardLineCount - 1, -1, -1):
             print("{0:4d}".format(i), end='')
@@ -521,7 +517,10 @@ class Game(object):
                     print('X'.center(8), end='')
                 else:
                     print('_'.center(8), end='')
-            print('\r\n\r\n')
+            print('\r\n')
+        for x in range(self.boardLineCount):
+            print("{0:8}".format(x), end='')
+        print('\r\n\r\n')
 
     def doOneSelfPlay(self, player: AlphaZeroPlayer, printMove=1, temperature=1e-3):
         self.board = Board()
