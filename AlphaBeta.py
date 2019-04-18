@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
+import copy
 import json
 
-from BoardGL import Board
-import copy
 import Util
 
-treeData:dict = None
+treeData: dict = None
 
 
 class SearchEngine:
@@ -15,15 +14,10 @@ class SearchEngine:
     minScore = -1000
     maxScore = 1000
 
-    def __init__(self, board, currentPerspective):
-        self.currentMaxScore = SearchEngine.minScore
-        self.eachLevelsBestMove = dict()  # 保存所有层最佳走法
-
-        self.lst = list()
-        self.board = board
-        self.maxDepth = 0
+    def __init__(self, board, currentPerspective, searchDepth=0):
         self.bestMove = None
-        self.defaultMove = 0
+        self.board = board
+        self.maxDepth = searchDepth
         self.undoMove = 0
         self.currentPerspective = currentPerspective  # 分数评估主视角方棋子类型
         self.leafNodeCount = 0
@@ -36,7 +30,7 @@ class SearchEngine:
         :return: 没结束,那么返回False,结束了就返回极大分数
         """
         end, winner = self.board.isGameEnd()
-        if end == True:
+        if end:
             # 如果可以在浅层就把对方走输,那就比在更深层将对手走输更好,所以减去depth
             return True, self.maxScore - depth
         return False, None
@@ -61,20 +55,19 @@ class SearchEngine:
         rivalScore = self.board.chessManCount[1 - self.currentPerspective] * 10 + rivalAvailableMovesScore
         return currentScore - rivalScore
 
-    def alphaBeta(self, depth=0, alpha=minScore, beta=maxScore, treeData:dict=None):
+    def alphaBeta(self, depth=0, alpha=minScore, beta=maxScore, treeData: dict = None):
         self.recursiveCount += 1
         nodeKeyStr = str(self.recursiveCount) + ',' + str(alpha) + ',' + str(beta)
 
-        isOver, overScore = self.isGameOver(depth)
+        isOver, endScore = self.isGameOver(depth)
         if isOver:
             if Util.getGlobalVar('isObserving'):
-                treeData[self.lastMove] = overScore
-            return overScore
+                treeData[self.lastMove] = endScore
+            return endScore
         if depth == self.maxDepth:  # 对最底层的节点进行估值
             evaluateScore = self.evaluate()
             if Util.getGlobalVar('isObserving'):
                 treeData[self.lastMove] = evaluateScore
-            # print("alpha={} while depth={}, bestMove={}".format(alpha, depth, self.bestMove))
             return evaluateScore
 
         if Util.getGlobalVar('isObserving'):
@@ -96,17 +89,11 @@ class SearchEngine:
                     score = self.alphaBeta(depth + 1, alpha, beta, treeData=nextTreeData)  # 深度优先
                 else:
                     score = self.alphaBeta(depth + 1, alpha, beta)
-                self.board.undoMove()  #
-
-                self.eachLevelsBestMove.setdefault(depth, move)
-                if self.currentMaxScore == SearchEngine.minScore and depth == 0:
-                    self.currentMaxScore = score
-                    self.bestMove = move
-                if score > self.currentMaxScore and depth == 0:
-                    self.bestMove = move
-                    self.currentMaxScore = score
+                self.board.undoMove()
 
                 if score > alpha:
+                    if depth == 0:
+                        self.bestMove = move
                     alpha = score
                     if alpha >= beta:
                         return beta  # beta剪枝
@@ -114,9 +101,7 @@ class SearchEngine:
         else:  # isMinPlayer
             moves = self.board.getAvailableMoves()
             for move in moves:
-                if depth == 0:
-                    self.defaultMove = move
-                # 递归    
+                # 递归
                 self.board.doMove(move)
                 self.lastMove = move
                 if Util.getGlobalVar('isObserving'):
@@ -129,14 +114,6 @@ class SearchEngine:
                 else:
                     score = self.alphaBeta(depth + 1, alpha, beta)
                 self.board.undoMove()  #
-
-                self.eachLevelsBestMove.setdefault(depth, move)
-                if self.currentMaxScore == SearchEngine.minScore and depth == 0:
-                    self.currentMaxScore = score
-                    self.bestMove = move
-                if score > self.currentMaxScore and depth == 0:
-                    self.bestMove = move
-                    self.currentMaxScore = score
 
                 if score < beta:
                     beta = score
@@ -160,9 +137,7 @@ class AlphaBetaPlayer:
     def getAction(self, board):
         global treeData
         copyedBoard = copy.deepcopy(board)
-        engine = SearchEngine(copyedBoard, self.player)
-
-        engine.maxDepth = self.searchDepth
+        engine = SearchEngine(copyedBoard, self.player, self.searchDepth)
         if Util.getGlobalVar('isObserving'):
             treeData = dict()
         engine.alphaBeta(treeData=treeData)
@@ -171,7 +146,7 @@ class AlphaBetaPlayer:
             location = board.move2coordinate(bestMove)
             print("AlphaBetaPlayer choose action: %d,%d to %d,%d, leafNodeCount: %d\n" % (
                 location[0], location[1], location[2], location[3], engine.leafNodeCount))
-            print(engine.eachLevelsBestMove)
+
         if Util.getGlobalVar('isObserving'):
             print('treeData:')
             print(json.dumps(treeData, indent=4))

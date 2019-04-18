@@ -148,8 +148,6 @@ def selectThanUpdate(select: str, update: str):
 def statisticEvaluation():
     connection = openConnection()
     cursor = connection.cursor()
-    evaluationBatch = 100
-    evaluationTimes = readGameCount(type='evaluation') / 10 * 100
     cursor.execute("select black, white, winner from game where type='evaluation' order by insert_time asc")
     rows = cursor.fetchall()
 
@@ -160,8 +158,8 @@ def statisticEvaluation():
                 winAsBlackTimes += 1
             if rows[j][2] == 'white' and rows[j][1][:9] == 'AlphaZero':
                 winAsWhiteTimes += 1
-        print("{} vs {} evaluation, AlphaZero win ratio: {}".format(rows[i*10][0], rows[i*10][1],
-                                                                   (winAsBlackTimes + winAsWhiteTimes) / 10.0))
+        print("{} vs {} evaluation, AlphaZero win ratio: {}".format(rows[i * 10][0], rows[i * 10][1],
+                                                                    (winAsBlackTimes + winAsWhiteTimes) / 10.0))
     closeConnection(connection)
 
 
@@ -183,53 +181,19 @@ def statisticBlackWinRate():
     closeConnection(connectoin)
 
 
-class DrawTree():
+class DrawTree:
     nodeSetting = dict(boxstyle="round4", fc="0.8")
     arrowSetting = dict(arrowstyle="<-")
     figure = None
     axes = None
-    # testData = {
-    #     '1,-1000,1000': {
-    #         "7": {
-    #             "2,-1000,1000": {
-    #                 "32": {
-    #                     "3,-1000,1000": {
-    #                         "0": -8,
-    #                         "10": -10,
-    #                         "11": -8,
-    #                         "16": -4,
-    #                         "19": -6,
-    #                         "30": -8
-    #                     }
-    #                 },
-    #                 "46": {
-    #                     "10,-1000,-4": {
-    #                         "0": 2
-    #                     }
-    #                 },
-    #                 "53": {
-    #                     "12,-1000,-4": {
-    #                         "0": 12
-    #                     }
-    #                 },
-    #                 "57": {
-    #                     "14,-1000,-4": {
-    #                         "0": -2
-    #                     }
-    #                 }
-    #             }
-    #         }
-    #     }
-    # }
-
     testData = {
-        0: {
+        'root': {
             1: {
                 'sub0': {
                     1: {
-                        'sub1': {
-                            1:1,
-                            2:2
+                        'sub01': {
+                            1: 1,
+                            2: 2
                         }
                     },
                     2: 2,
@@ -238,9 +202,9 @@ class DrawTree():
             },
             2: 2,
             3: {
-                'sub0': {
-                    1:1,
-                    2:2
+                'sub1': {
+                    1: 1,
+                    2: 2
                 }
             }
         }
@@ -276,12 +240,14 @@ class DrawTree():
                 maxDepth = currentDepth
         return maxDepth
 
-    def plotLineText(self, point1XY, point2XY, text: str):
+    @staticmethod
+    def plotLineText(point1XY, point2XY, text: str):
         middleX = (point1XY[0] + point2XY[0]) / 2.0
         middleY = (point1XY[1] + point2XY[1]) / 2.0
         DrawTree.axes.text(middleX, middleY, text)
 
-    def plotNode(self, text: str, arrowStartXY, nodeXY):
+    @staticmethod
+    def plotNode(text: str, arrowStartXY, nodeXY):
         DrawTree.axes.annotate(text, xy=arrowStartXY, xycoords='axes fraction',
                                xytext=nodeXY, textcoords='axes fraction',
                                va='center', ha='center', bbox=DrawTree.nodeSetting,
@@ -324,16 +290,17 @@ class DrawTree():
     def start(self, treeData=testData):
         if not treeData or not len(treeData):
             return
-        self.treeData = treeData
+        # self.treeData = treeData
         # DrawTree.figure = plt.figure(1, facecolor='white')  # 编号和背景色
-        DrawTree.axes = DrawTree.figure.add_subplot(1, 1, 1)
-        # 什么规则,必须有 ani = 这四个字符,否则绘图不执行,即使ani这个变量根本就没有用到过
-        # ani = animation.FuncAnimation(DrawTree.figure, self.animate, interval=500)
-        self.animate(0)
+        # DrawTree.axes = DrawTree.figure.add_subplot(1, 1, 1)
+        # # 什么规则,必须有 ani = 这四个字符,否则绘图不执行,即使ani这个变量根本就没有用到过
+        # # ani = animation.FuncAnimation(DrawTree.figure, self.animate, interval=500)
+        # self.animate(0)
         # plt.title('AlphaBeta Search Tree')
         # plt.show()
 
-    # def close(self):
+    # @staticmethod
+    # def close():
     #     plt.close()
 
 
