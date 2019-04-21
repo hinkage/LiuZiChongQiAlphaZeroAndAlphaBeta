@@ -8,7 +8,7 @@ class TreeNode(object):
 
     def __init__(self, parent, prior_p):
         self._parent = parent
-        self._children = {}  # move -> treeNode
+        self.children = {}  # move -> treeNode
         self.visitedTimes = 0
         self._Q = 0
         self._u = 0
@@ -21,8 +21,8 @@ class TreeNode(object):
         :param actionPriors: 策略函数的输出: 依据策略函数得到的由action到其先验概率的元组构成的列表.
         """
         for action, probability in actionPriors:
-            if action not in self._children:
-                self._children[action] = TreeNode(self, probability)
+            if action not in self.children:
+                self.children[action] = TreeNode(self, probability)
 
     def select(self, polynomialUpperConfidenceTreesConstant):
         """
@@ -30,7 +30,7 @@ class TreeNode(object):
 
         :return: (action, nextNode)的元组
         """
-        return max(self._children.items(),
+        return max(self.children.items(),
                    key=lambda actionNode: actionNode[1].getNodeValue(polynomialUpperConfidenceTreesConstant))
 
     def update(self, leafValue):
@@ -67,7 +67,7 @@ class TreeNode(object):
         """
         无子结点的就是叶子结点
         """
-        return self._children == {}
+        return self.children == {}
 
     def isRootNode(self):
         return self._parent is None  # None是一个常量,id是一样的

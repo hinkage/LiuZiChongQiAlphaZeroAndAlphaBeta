@@ -36,7 +36,7 @@ loss, entropy = self.policyValueNet.doOneTrain(batchState, batchProbability, bat
 参考如下资料:
 https://blog.csdn.net/weixin_42840933/article/details/85780125
 使用如下命令让训练流水线在后台运行:
-nohup python3 TrainPipeline.py >> /home/liuzichongqi.log 2>&1 &
+nohup python3 TrainPipeline.py >> /dev/null 2>&1 &
 用jobs -l查看后台任务
 
 2019-03-21
@@ -132,5 +132,6 @@ dict,感觉很浪费性能.
 占用磁盘: 770.64MB
 耗时: 一个月
 到9月还有5个月,则对局上限设为: 200,000, 即使达到也只是20GB, 够用.
-中断,重新启动训练流程.
+中断,重新启动训练流程.当前对局数为7779.
+
 

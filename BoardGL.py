@@ -569,7 +569,7 @@ class Game(object):
                               json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder),
                               len(self.board.moveRecordList), 'train',
                               player.getName(), player.getName(), winnerStr,
-                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), player.getNetworkVersion())
+                              Util.getTimeNowStr(), player.getNetworkVersion())
                 print("已把一盘对局存入到数据库")
                 # zip函数将构造形为(4*4*4的棋盘状态state, 策略网络概率, 得分)这样的元组
                 return winner, zip(states, mctsProbabilities, currentPlayersScores)
@@ -625,6 +625,6 @@ class Game(object):
                               json.dumps(moveRecords2moves(self.board.moveRecordList), cls=Util.CustomEncoder),
                               len(self.board.moveRecordList), type,
                               player1.getName(), player2.getName(), winnerStr,
-                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), networkVersion=networkVersion)
+                              Util.getTimeNowStr(), networkVersion=networkVersion)
                 print("已把一盘对局存入到数据库")
                 return winner

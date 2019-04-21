@@ -6,6 +6,8 @@ https://medium.com/oracledevs/lessons-from-alphazero-part-3-parameter-tweaking-4
 
 3. KL Divergence for Machine Learning
 https://dibyaghosh.com/blog/probability/kldivergence.html
+https://towardsdatascience.com/light-on-math-machine-learning-intuitive-guide-to-understanding-kl-divergence-2b382ca2b2a8
+https://medium.com/@samsachedina/demystified-kullback-leibler-divergence-3971f956ef34
 
 4. polynomial upper confidence trees
 

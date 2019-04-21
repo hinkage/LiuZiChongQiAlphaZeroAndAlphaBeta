@@ -5,7 +5,8 @@ use liuzichongqi;
 其实只需要记录moves就可以了,其它都可以不管,直接init一个board,然后doMove就可以推导出其它数据
  */
 drop table if exists game;
-create table game (
+create table game
+(
   uuid            char(36) primary key,
   states          mediumtext,
   probabilities   mediumtext,
@@ -20,25 +21,17 @@ create table game (
   network_version int comment 'Identify different network'
 );
 
-select count(*) from game;
-
-select
-       insert_time, moves_length, type, black, white, winner, network_version
-from game
-order by insert_time asc;
-
-select black, white, winner from game where type='evaluation' order by insert_time asc;
-
-select max(moves_length) from game;
-
-select
-       insert_time, moves_length, type, black, white, winner, network_version
-from game
-where type='show'
-order by insert_time asc;
-
-select * from game limit 0,5;
-
-# 查询数据库大小
-select concat(round(sum(data_length/1024/1024),2),'MB') as data from information_schema.tables where table_schema='liuzichongqi';
-
+drop table if exists policy_update;
+create table policy_update
+(
+  uuid                        char(36) primary key,
+  Kullback_Leibler_Divergence decimal(23, 21),
+  learning_rate_multiplier    decimal(23, 21),
+  learning_rate               decimal(23, 21),
+  loss                        decimal(23, 21),
+  entropy                     decimal(23, 21),
+  old_variance                decimal(23, 21),
+  new_variance                decimal(23, 21),
+  insert_time                 datetime,
+  type                        varchar(20) comment 'from_db, from_self_play'
+);
