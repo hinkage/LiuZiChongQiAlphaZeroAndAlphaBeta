@@ -1,0 +1,2 @@
+start "" "C:\Program Files (x86)\Microsoft Visual Studio\Shared\Python36_64\Scripts\tensorboard.exe" --logdir=./from_db_train_log
+start "" "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" "http://a:6006"
