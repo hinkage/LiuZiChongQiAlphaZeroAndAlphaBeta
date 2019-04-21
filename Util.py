@@ -3,14 +3,12 @@
     @author 何江
     @date 2019/2/9 21:17
 """
-import _thread
+import datetime
 import json
-import time
 
+# import matplotlib.pyplot as plt
 import numpy as np
 import pymysql
-# import matplotlib.pyplot as plt
-# import matplotlib.animation as animation
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -47,44 +45,46 @@ def setGlobalVar(nodeName, value):
 def getGlobalVar(nodeName):
     try:
         return globalVars[nodeName]
-    except:
+    except Exception as e:
+        print(str(e))
         return None
 
 
-def getNoloopCurrentPolicyModelPath():
-    return './weight/noloop/current_policy'
+def getPathToSaveModel(isLoop=False, isCurrent=False, isFromDB=False):
+    if isLoop:
+        if isCurrent:
+            return './weight/canloop/current_policy.model'
+        else:
+            return './weight/canloop/best_policy.model'
+    else:
+        if isCurrent:
+            if isFromDB:
+                return './weight/noloop_train_from_db/current_policy'
+            else:
+                return './weight/noloop/current_policy'
+        else:
+            if isFromDB:
+                return './weight/noloop_train_from_db/best_policy'
+            else:
+                return './weight/noloop/best_policy'
 
 
-def getNoloopBestPolicyModelPath():
-    return './weight/noloop/best_policy'
+def getTrainLogPath(isFromDB=False):
+    if isFromDB:
+        return './from_db_train_log'
+    else:
+        return './self_play_train_log'
 
 
-def getCanloopCurrentPolicyModelPath():
-    return './weight/canloop/current_policy.model'
+def getTimeNowStr():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def getCanloopBestPolicyModelPath():
-    return './weight/canloop/best_policy.model'
-
-
-def saveGame(uuid, states, probabilities, scores, moves, movesLength, type, black, white, winner, insertTime,
-             networkVersion):
+def saveGame(uuid, states, probabilities, scores, moves, movesLength, type, black, white, winner, insertTime, networkVersion):
     connection = openConnection()
     cursor = connection.cursor()
     try:
-        cursor.execute(
-            "insert into game values('{}', '{}', '{}', '{}', '{}', {}, '{}', '{}', '{}', '{}', '{}', {})".format(uuid,
-                                                                                                                 states,
-                                                                                                                 probabilities,
-                                                                                                                 scores,
-                                                                                                                 moves,
-                                                                                                                 movesLength,
-                                                                                                                 type,
-                                                                                                                 black,
-                                                                                                                 white,
-                                                                                                                 winner,
-                                                                                                                 insertTime,
-                                                                                                                 networkVersion))
+        cursor.execute("insert into game values('{}', '{}', '{}', '{}', '{}', {}, '{}', '{}', '{}', '{}', '{}', {})".format(uuid, states, probabilities, scores, moves, movesLength, type, black, white, winner, insertTime, networkVersion))
         connection.commit()
     except Exception as e:
         print(str(e))
@@ -92,7 +92,28 @@ def saveGame(uuid, states, probabilities, scores, moves, movesLength, type, blac
     closeConnection(connection)
 
 
-def readGameFromDB(index=0, readAll=False, type=None, onlyMoves=False):
+def savePolicyUpdate(uuid, KullbackLeiblerDivergence, learningRateMultiplier, learningRate, loss, entropy, oldVariance, newVariance, insertTime, type):
+    connection = openConnection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute("insert into policy_update values('{}', {}, {}, {}, {}, {}, {}, {}, '{}', '{}')".format(uuid, KullbackLeiblerDivergence, learningRateMultiplier, learningRate, loss, entropy, oldVariance, newVariance, insertTime, type))
+        connection.commit()
+    except Exception as e:
+        print(str(e))
+        connection.rollback()
+    closeConnection(connection)
+
+
+def getNewestLearningRateMultiplier(type):
+    connection = openConnection()
+    cursor = connection.cursor()
+    cursor.execute("select learning_rate_multiplier from policy_update where type = '{}' order by insert_time desc limit 0, 1".format(type))
+    row = cursor.fetchone()
+    closeConnection(connection)
+    return row[0]
+
+
+def readGameFromDB(offset=0, size=1, readAll=False, type=None, onlyMoves=False):
     connection = openConnection()
     cursor = connection.cursor()
     fields = '*'
@@ -103,19 +124,14 @@ def readGameFromDB(index=0, readAll=False, type=None, onlyMoves=False):
             cursor.execute("select " + fields + " from game order by insert_time asc")
         else:
             cursor.execute("select " + fields + " from game where type='{}' order by insert_time asc".format(type))
-        rows = cursor.fetchall()
-        closeConnection(connection)
-        return rows
     else:
         if type is None:
-            cursor.execute("select " + fields + " from game order by insert_time asc limit {}, 1".format(index))
+            cursor.execute("select " + fields + " from game order by insert_time asc limit {}, {}".format(offset, size))
         else:
-            cursor.execute(
-                "select " + fields + " from game where type='{}' order by insert_time asc limit {}, 1".format(type,
-                                                                                                              index))
-        row = cursor.fetchone()
-        closeConnection(connection)
-        return row
+            cursor.execute("select " + fields + " from game where type='{}' order by insert_time asc limit {}, {}".format(type, offset, size))
+    rows = cursor.fetchall()
+    closeConnection(connection)
+    return rows
 
 
 def readGameCount(type=None):
@@ -167,17 +183,15 @@ def statisticBlackWinRate():
     trainCount = readGameCount(type='train')
     connectoin = openConnection()
     cursor = connectoin.cursor()
-    length = 100
-    for offset in range(0, trainCount // length):
+    pageSize = 100
+    for pageIndex in range(0, trainCount // pageSize):
         blackWinCount = 0
-        cursor.execute(
-            "select winner from game where type = 'train' order by insert_time asc limit {},{}".format(offset * length,
-                                                                                                       length))
+        cursor.execute("select winner from game where type = 'train' order by insert_time asc limit {},{}".format(pageIndex * pageSize, pageSize))
         rows = cursor.fetchall()
         for i in range(len(rows)):
             if rows[i][0] == 'black':
                 blackWinCount += 1
-        print(offset * length, offset * length + len(rows), 'black win ratio:', 1.0 * blackWinCount / len(rows))
+        print(pageIndex * pageSize, pageIndex * pageSize + len(rows), 'black win ratio:', 1.0 * blackWinCount / len(rows))
     closeConnection(connectoin)
 
 
@@ -290,15 +304,15 @@ class DrawTree:
     def start(self, treeData=testData):
         if not treeData or not len(treeData):
             return
-        # self.treeData = treeData
-        # DrawTree.figure = plt.figure(1, facecolor='white')  # 编号和背景色
-        # DrawTree.axes = DrawTree.figure.add_subplot(1, 1, 1)
-        # # 什么规则,必须有 ani = 这四个字符,否则绘图不执行,即使ani这个变量根本就没有用到过
-        # # ani = animation.FuncAnimation(DrawTree.figure, self.animate, interval=500)
-        # self.animate(0)
-        # plt.title('AlphaBeta Search Tree')
-        # plt.show()
-
+        self.treeData = treeData
+    #     DrawTree.figure = plt.figure(1, facecolor='white')  # 编号和背景色
+    #     DrawTree.axes = DrawTree.figure.add_subplot(1, 1, 1)
+    #     # 什么规则,必须有 ani = 这四个字符,否则绘图不执行,即使ani这个变量根本就没有用到过
+    #     # ani = animation.FuncAnimation(DrawTree.figure, self.animate, interval=500)
+    #     self.animate(0)
+    #     plt.title('AlphaBeta Search Tree')
+    #     plt.show()
+    #
     # @staticmethod
     # def close():
     #     plt.close()

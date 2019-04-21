@@ -104,14 +104,14 @@ class MCTS(object):
         for n in range(self._n_playout):
             state_copy = copy.deepcopy(state)
             self.__playout(state_copy)
-        return max(self._root._children.items(), key=lambda actionNode: actionNode[1].visitedTimes)[0]
+        return max(self._root.children.items(), key=lambda actionNode: actionNode[1].visitedTimes)[0]
 
     def updateWithMove(self, lastMove):
         """
         在树中前进，保留我们已经知道的关于子树的所有内容
         """
-        if lastMove in self._root._children:
-            self._root = self._root._children[lastMove]
+        if lastMove in self._root.children:
+            self._root = self._root.children[lastMove]
             self._root._parent = None
         else:
             self._root = TreeNode(None, 1.0)

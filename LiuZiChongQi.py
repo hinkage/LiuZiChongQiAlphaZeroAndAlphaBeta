@@ -495,7 +495,7 @@ def resetGameAndBoard(index=0, isReplaying=False):
     game = BoardGL.Game()
     board = game.board
     if isReplaying:
-        replayMoves = json.loads(Util.readGameFromDB(index=index, type=replayType, onlyMoves=True)[0])
+        replayMoves = json.loads(Util.readGameFromDB(offset=index, size=1, type=replayType, onlyMoves=True)[0][0])
         replayMoveIndex = 0
         print(index, replayMoves)
 

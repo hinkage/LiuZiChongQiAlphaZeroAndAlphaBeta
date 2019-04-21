@@ -4,10 +4,10 @@ AlphaGo Zero风格的蒙特卡罗树搜索，使用策略价值网络引导树�
 
 @author: hj
 """
-import numpy as np
 import copy
 
-import BoardGL
+import numpy as np
+
 from TreeNode import TreeNode
 
 
@@ -38,7 +38,7 @@ class MCTS(object):
         """
         从根到叶子模拟走子，在叶子上获取值并通过其父亲传播回来.棋盘状态会被修改，因此必须提供它的拷贝
 
-        :param state: 棋盘状态的拷贝
+        :param board: 棋盘状态的拷贝
         """
         node = self.__root
         while True:
@@ -75,7 +75,7 @@ class MCTS(object):
             copyState = copy.deepcopy(state)
             self.__playout(copyState)
         # 根据根节点处的访问计数来计算移动概率
-        movesVisitTime = [(move, node.visitedTimes) for move, node in self.__root._children.items()]
+        movesVisitTime = [(move, node.visitedTimes) for move, node in self.__root.children.items()]
         moves, visitTimes = zip(*movesVisitTime)
         actionProbabilities = softmax(1.0 / temperature * np.log(np.array(visitTimes) + 1e-10))
 
@@ -85,8 +85,8 @@ class MCTS(object):
         """
         在树中前进，保留我们已经知道的关于子树的所有内容
         """
-        if lastMove in self.__root._children:
-            self.__root = self.__root._children[lastMove]
+        if lastMove in self.__root.children:
+            self.__root = self.__root.children[lastMove]
             self.__root._parent = None
         else:
             self.__root = TreeNode(None, 1.0)
@@ -138,7 +138,7 @@ class AlphaZeroPlayer(object):
                 move = np.random.choice(moves, p=probabilities)
                 # 重置根节点
                 self.mcts.updateWithMove(-1)
-                location = board.move2coordinate(move)
+                # location = board.move2coordinate(move)
                 # print("AlphaZeroPlayer choose action: {},{} to {},{}\n".format(location[0], location[1], location[2], location[3]))
 
             if returnProb:
