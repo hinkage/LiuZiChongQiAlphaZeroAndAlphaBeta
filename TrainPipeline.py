@@ -102,10 +102,11 @@ class TrainPipeline():
         batchState = [stateProbScore[0] for stateProbScore in batchSample]
         batchProbability = [data[1] for data in batchSample]
         batchScore = [data[2] for data in batchSample]
+        oldLearningRateMultiplier = self.learningRateMultiplier
+        oldLearningRate = oldLearningRateMultiplier * self.learningRate
         oldProbability, oldScore = self.policyValueNet.doPolicyValueFunction(batchState)
         for i in range(self.epochs):
-            loss, entropy = self.policyValueNet.doOneTrain(batchState, batchProbability, batchScore,
-                                                           self.learningRate * self.learningRateMultiplier)
+            loss, entropy = self.policyValueNet.doOneTrain(batchState, batchProbability, batchScore, oldLearningRate)
             newProbability, newScore = self.policyValueNet.doPolicyValueFunction(batchState)
             Kullback_Leibler_Divergence = np.mean(np.sum(oldProbability * (np.log(oldProbability + 1e-10) - np.log(newProbability + 1e-10)), axis=1))
             if Kullback_Leibler_Divergence > self.KLDParam * 4:  # 如果D_KL发生严重分歧,提早停止
@@ -119,7 +120,7 @@ class TrainPipeline():
         oldVariance = 1 - np.var(np.array(batchScore) - oldScore.flatten()) / np.var(np.array(batchScore))
         newVariance = 1 - np.var(np.array(batchScore) - newScore.flatten()) / np.var(np.array(batchScore))
         # print("Kullback_Leibler_Divergence:{:.5f},learningRateMultiplier:{:.3f},loss:{},entropy:{},oldVariance:{:.3f},newVariance:{:.3f}".format(Kullback_Leibler_Divergence, self.learningRateMultiplier, loss, entropy, oldVariance, newVariance))
-        Util.savePolicyUpdate(uuid=uuid.uuid1(), KullbackLeiblerDivergence=Kullback_Leibler_Divergence, learningRateMultiplier=self.learningRateMultiplier, learningRate=self.learningRateMultiplier * self.learningRate, loss=loss, entropy=entropy, oldVariance=oldVariance, newVariance=newVariance, insertTime=Util.getTimeNowStr(), type=type)
+        Util.savePolicyUpdate(uuid=uuid.uuid1(), KullbackLeiblerDivergence=Kullback_Leibler_Divergence, oldLearningRateMultiplier=oldLearningRateMultiplier, newLearningRateMultiplier=self.learningRateMultiplier, oldLearningRate=oldLearningRate, newLearningRate=self.learningRateMultiplier * self.learningRate, loss=loss, entropy=entropy, oldVariance=oldVariance, newVariance=newVariance, insertTime=Util.getTimeNowStr(), type=type)
         return loss, entropy
 
     def doPolicyEvaluate(self, times=10):

@@ -24,14 +24,16 @@ create table game
 drop table if exists policy_update;
 create table policy_update
 (
-  uuid                        char(36) primary key,
-  Kullback_Leibler_Divergence decimal(23, 21),
-  learning_rate_multiplier    decimal(23, 21),
-  learning_rate               decimal(23, 21),
-  loss                        decimal(23, 21),
-  entropy                     decimal(23, 21),
-  old_variance                decimal(23, 21),
-  new_variance                decimal(23, 21),
-  insert_time                 datetime,
-  type                        varchar(20) comment 'from_db, from_self_play'
+  uuid                         char(36) primary key,
+  Kullback_Leibler_Divergence  decimal(23, 21),
+  old_learning_rate_multiplier decimal(23, 21),
+  new_learning_rate_multiplier decimal(23, 21),
+  old_learning_rate            decimal(23, 21),
+  new_learning_rate            decimal(23, 21),
+  loss                         decimal(23, 21),
+  entropy                      decimal(23, 21),
+  old_variance                 decimal(23, 21),
+  new_variance                 decimal(23, 21),
+  insert_time                  datetime,
+  type                         varchar(20) comment 'from_db, from_self_play'
 );

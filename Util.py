@@ -92,11 +92,11 @@ def saveGame(uuid, states, probabilities, scores, moves, movesLength, type, blac
     closeConnection(connection)
 
 
-def savePolicyUpdate(uuid, KullbackLeiblerDivergence, learningRateMultiplier, learningRate, loss, entropy, oldVariance, newVariance, insertTime, type):
+def savePolicyUpdate(uuid, KullbackLeiblerDivergence, oldLearningRateMultiplier, newLearningRateMultiplier, oldLearningRate, newLearningRate, loss, entropy, oldVariance, newVariance, insertTime, type):
     connection = openConnection()
     cursor = connection.cursor()
     try:
-        cursor.execute("insert into policy_update values('{}', {}, {}, {}, {}, {}, {}, {}, '{}', '{}')".format(uuid, KullbackLeiblerDivergence, learningRateMultiplier, learningRate, loss, entropy, oldVariance, newVariance, insertTime, type))
+        cursor.execute("insert into policy_update values('{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, '{}', '{}')".format(uuid, KullbackLeiblerDivergence, oldLearningRateMultiplier, newLearningRateMultiplier, oldLearningRate, newLearningRate, loss, entropy, oldVariance, newVariance, insertTime, type))
         connection.commit()
     except Exception as e:
         print(str(e))
