@@ -61,12 +61,12 @@ def getPathToSaveModel(isLoop=False, isCurrent=False, isFromDB=False):
             if isFromDB:
                 return './weight/noloop_train_from_db/current_policy'
             else:
-                return './weight/noloop/current_policy'
+                return './weight/noloop1/current_policy'
         else:
             if isFromDB:
                 return './weight/noloop_train_from_db/best_policy'
             else:
-                return './weight/noloop/best_policy'
+                return './weight/noloop1/best_policy'
 
 
 def getTrainLogPath(isFromDB=False):

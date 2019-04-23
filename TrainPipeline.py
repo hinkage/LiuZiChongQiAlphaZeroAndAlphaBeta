@@ -224,6 +224,6 @@ class TrainPipeline():
 
 
 if __name__ == '__main__':
-    trainPipeline = TrainPipeline(modelPath=Util.getPathToSaveModel(False, True, False))
-    # trainPipeline = TrainPipeline(modelPath=None)
+    # trainPipeline = TrainPipeline(modelPath=Util.getPathToSaveModel(False, True, False))
+    trainPipeline = TrainPipeline(modelPath=None)
     trainPipeline.run()

@@ -68,8 +68,7 @@ class PolicyValueNet():
             l2Param = 1e-4
             trainableVariables = tf.trainable_variables()
             # L2正则化结果
-            l2 = l2Param * tf.add_n(
-                [tf.nn.l2_loss(variable) for variable in trainableVariables if 'bias' not in variable.name.lower()])
+            l2 = l2Param * tf.add_n([tf.nn.l2_loss(variable) for variable in trainableVariables if 'bias' not in variable.name.lower()])
             # 损失=分值预测损失 + 行棋方式损失 + 正则
             self.loss = self.scoreLoss + self.moveLoss + l2
             tf.summary.scalar('loss', self.loss)
