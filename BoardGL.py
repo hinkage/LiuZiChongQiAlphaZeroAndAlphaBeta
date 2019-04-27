@@ -126,20 +126,20 @@ class Board(object):
         :param coordinate:
         :return:
         """
-        if (len(coordinate) != 4):
-            return -1;
+        if len(coordinate) != 4:
+            return -1
         x1 = coordinate[0]
         y1 = coordinate[1]
         x2 = coordinate[2]
         y2 = coordinate[3]
         move = (x1 * self.width + y1) * 4  # 之前漏了乘以4
-        if (y2 - y1 == 1):  # 东
+        if y2 - y1 == 1:  # 东
             move += 0
-        elif (x2 - x1 == -1):  # 南
+        elif x2 - x1 == -1:  # 南
             move += 1
-        elif (y2 - y1 == -1):  # 西
+        elif y2 - y1 == -1:  # 西
             move += 2
-        elif (x2 - x1 == 1):  # 北
+        elif x2 - x1 == 1:  # 北
             move += 3
         return move
 

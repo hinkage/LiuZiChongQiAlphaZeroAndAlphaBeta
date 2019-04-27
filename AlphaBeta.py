@@ -144,8 +144,7 @@ class AlphaBetaPlayer:
         bestMove = engine.bestMove
         if self.printMove:
             location = board.move2coordinate(bestMove)
-            print("AlphaBetaPlayer choose action: %d,%d to %d,%d, leafNodeCount: %d\n" % (
-                location[0], location[1], location[2], location[3], engine.leafNodeCount))
+            print("AlphaBetaPlayer choose action: %d,%d to %d,%d, leafNodeCount: %d\n" % (location[0], location[1], location[2], location[3], engine.leafNodeCount))
 
         if Util.getGlobalVar('isObserving'):
             print('treeData:')

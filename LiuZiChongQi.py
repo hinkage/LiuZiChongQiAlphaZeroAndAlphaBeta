@@ -523,14 +523,14 @@ def playGame():
         alphabetaPlayer1 = AlphaBetaPlayer(level=2)
 
         # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(zeroPlayer1, humanPlayer, startPlayer=0, printMove=1, type='play', board=board)
+        game.startPlay(alphabetaPlayer1, humanPlayer, startPlayer=0, printMove=1, type='play', board=board)
 
     except KeyboardInterrupt:
         print('\n\rquit')
 
 
 if __name__ == '__main__':
-    doPlay = 1
+    doPlay = 0
     isObserving = 0
     if doPlay:
         if isObserving:

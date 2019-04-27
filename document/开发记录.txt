@@ -159,3 +159,8 @@ nohup tensorboard --logdir from_db_train_log >> /dev/null 2>&1 &
 delete from policy_update where type='from_db'; # 误删了
 只好重新开始吃谱
 
+2019-04-27
+发现评估9000对局没有做,bug在
+self.trainedGameCount = i + 1
+此处应为self.trainedGameCount自加1,否则其值在吃完历史谱后为10.
+修改后清空update_policy表,重启

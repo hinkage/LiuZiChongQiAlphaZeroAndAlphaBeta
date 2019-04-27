@@ -189,7 +189,7 @@ class TrainPipeline():
                 if len(self.dataDeque) > self.trainBatchSize:
                     self.updatePolicy(type='from_db')
                 self.policyEvaluate(index=i, currentModelSavedPath=Util.getPathToSaveModel(False, True, True), willDoPolicyEvaluate=False)
-                self.trainedGameCount = i + 1
+                self.trainedGameCount += 1
 
     def run(self):
         """运行训练流水线"""
