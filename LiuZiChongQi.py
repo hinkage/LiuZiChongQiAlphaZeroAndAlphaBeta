@@ -509,11 +509,11 @@ def playGame():
         # zeroPlayer.setName('AlphaZero_2000')
         # zeroPlayer.setNetworkVersion(0)
 
-        policyValueNet1 = PolicyValueNet(width, height, modelPath='./weight/noloop/best_policy_5000')
-        zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-                                 playoutTimes=500, isSelfPlay=0)
-        zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
-        zeroPlayer1.setNetworkVersion(1)
+        # policyValueNet1 = PolicyValueNet(width, height, modelPath='./weight/noloop/best_policy_5000')
+        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+        #                          playoutTimes=500, isSelfPlay=0)
+        # zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
+        # zeroPlayer1.setNetworkVersion(1)
 
         humanPlayer = HumanPlayer()
         humanPlayer1 = HumanPlayer()
@@ -523,20 +523,22 @@ def playGame():
         alphabetaPlayer1 = AlphaBetaPlayer(level=2)
 
         # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(alphabetaPlayer1, humanPlayer, startPlayer=0, printMove=1, type='play', board=board)
+        game.startPlay(humanPlayer, alphabetaPlayer, startPlayer=0, printMove=1, type='play', board=board)
 
     except KeyboardInterrupt:
         print('\n\rquit')
 
 
 if __name__ == '__main__':
-    doPlay = 0
+    doPlay = 1
     isObserving = 0
     if doPlay:
         if isObserving:
             Util.setGlobalVar('isObserving', True)
             Util.setGlobalVar('treeData', dict())
             Util.setGlobalVar('drawTree', drawTree)
+        else:
+            Util.setGlobalVar('isObserving', False)
         resetGameAndBoard()
         playGame()
     else:

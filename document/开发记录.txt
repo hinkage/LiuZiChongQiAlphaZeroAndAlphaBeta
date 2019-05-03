@@ -164,3 +164,6 @@ delete from policy_update where type='from_db'; # 误删了
 self.trainedGameCount = i + 1
 此处应为self.trainedGameCount自加1,否则其值在吃完历史谱后为10.
 修改后清空update_policy表,重启
+
+2019-05-02
+发现AlphaZero对AlphaZero的对弈还没有实现.

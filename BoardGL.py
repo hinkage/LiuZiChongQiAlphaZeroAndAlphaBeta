@@ -304,7 +304,7 @@ class Board(object):
                             if self.state[(x1 + 1) * self.width + y1] != cur_player:
                                 if self.state[(x1 + 2) * self.width + y1] == -1:
                                     # -1 1 0 0 '
-                                    self.state[(x1 + 1) * self.width + y1] = -1;
+                                    self.state[(x1 + 1) * self.width + y1] = -1
                                     self.chessManCount[oppo_player] -= 1
                                     moveRecord.hasEaten = True
                                     moveRecord.rePutPos.append([x1 + 1, y1])
@@ -313,7 +313,7 @@ class Board(object):
                             if self.state[(x2 - 1) * self.width + y2] != cur_player:
                                 if self.state[(x2 - 2) * self.width + y2] == -1:
                                     # 0 0 1 -1
-                                    self.state[(x2 - 1) * self.width + y2] = -1;
+                                    self.state[(x2 - 1) * self.width + y2] = -1
                                     self.chessManCount[oppo_player] -= 1
                                     moveRecord.hasEaten = True
                                     moveRecord.rePutPos.append([x2 - 1, y2])
