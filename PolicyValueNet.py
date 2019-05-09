@@ -11,7 +11,7 @@ import tensorflow as tf
 import BoardGL
 
 
-class PolicyValueNet():
+class PolicyValueNet:
     def __init__(self, boardWidth, boardHeight, logPath='./logs', modelPath=None):
         self.logPath = logPath
         self.doOneTrainTimes = 0

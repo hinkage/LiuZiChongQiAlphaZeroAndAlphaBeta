@@ -23,18 +23,14 @@ def rolloutPolicyFunction(board):
     随机的走子概率, (action, probability)这样的元组的列表
     zip([1,2,3], [4,5,6]) 会得到元组的列表 [(1,4),(2,5),(3,6)]
     """
-    board.availables = board.getAvailableMoves()
-    actionProbabilities = np.random.rand(len(board.availables))
-    return zip(board.availables, actionProbabilities)
+    return zip(board.getAvailableMoves(), np.random.rand(len(board.getAvailableMoves())))
 
 
 def policyValueFunction(board):
     """
     均匀分布的走子概率, (action, probability)这样的元组的列表和一个恒为0的分数
     """
-    board.availables = board.getAvailableMoves()
-    actionProbabilities = np.ones(len(board.availables)) / len(board.availables)
-    return zip(board.availables, actionProbabilities), 0
+    return zip(board.getAvailableMoves(), np.ones(len(board.getAvailableMoves())) / len(board.getAvailableMoves())), 0
 
 
 class MCTS(object):
@@ -48,7 +44,7 @@ class MCTS(object):
         self._root = TreeNode(None, 1.0)
         self._policy = policyValueFunction
         self._c_puct = polynomialUpperConfidenceTreesConstant
-        self._n_playout = playoutTimes
+        self.playoutTime = playoutTimes
 
     def __playout(self, state):
         """
@@ -70,11 +66,12 @@ class MCTS(object):
         if not end:
             node.expand(actionProbabilities)  # 每种走子选择都拓展了一个新的子结点
         # 通过随机概率评估叶节点
-        leafValue = self._evaluateRollout(state)
+        leafValue = self.__evaluateRollout(state)
         # 更新此遍历中的值和访问节点数
         node.updateRecursively(-leafValue)
 
-    def _evaluateRollout(self, board: BoardGL.Board, limit=10000):
+    @staticmethod
+    def __evaluateRollout(board: BoardGL.Board, limit=10000):
         """
         模拟走子直到游戏结束，如果当前玩家获胜则返回+1，如果对手获胜则返回-1，如果是平局则返回0。
         """
@@ -84,8 +81,8 @@ class MCTS(object):
             if end:
                 break
             actionProbabilities = rolloutPolicyFunction(board)
-            max_action = max(actionProbabilities, key=itemgetter(1))[0]
-            board.doMove(max_action)
+            maxAction = max(actionProbabilities, key=itemgetter(1))[0]
+            board.doMove(maxAction)
         else:
             # 如果没有从循环中断，发出警告
             print("WARNING: rollout reached move limit")
@@ -101,9 +98,9 @@ class MCTS(object):
         :param state: 当前状态，包括游戏状态和当前玩家
         :return: 选择的action
         """
-        for n in range(self._n_playout):
-            state_copy = copy.deepcopy(state)
-            self.__playout(state_copy)
+        for n in range(self.playoutTime):
+            copyedState = copy.deepcopy(state)
+            self.__playout(copyedState)
         return max(self._root.children.items(), key=lambda actionNode: actionNode[1].visitedTimes)[0]
 
     def updateWithMove(self, lastMove):
@@ -128,7 +125,7 @@ class PureMCTSPlayer(object):
         self.printMove = True
 
     def getName(self):
-        return 'PureMCTS_' + str(self.mcts._n_playout)
+        return 'PureMCTS_' + str(self.mcts.playoutTime)
 
     def setPlayerIndex(self, p):
         self.player = p
@@ -141,9 +138,9 @@ class PureMCTSPlayer(object):
         if len(allAvailableMoves) > 0:
             move = self.mcts.getMove(board)
             self.mcts.updateWithMove(-1)
-            if self.printMove:
-                location = board.move2coordinate(move)
-                #print("PureMCTSPlayer choose action: {},{} to {},{}\n".format(location[0], location[1], location[2], location[3]))
+            # if self.printMove:
+            #     location = board.move2coordinate(move)
+            #     print("PureMCTSPlayer choose action: {},{} to {},{}\n".format(location[0], location[1], location[2], location[3]))
             return move
         else:
             print("WARNING: the board is full")

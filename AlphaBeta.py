@@ -18,7 +18,6 @@ class SearchEngine:
         self.bestMove = None
         self.board = board
         self.maxDepth = searchDepth
-        self.undoMove = 0
         self.currentPerspective = currentPerspective  # 分数评估主视角方棋子类型
         self.leafNodeCount = 0
         self.recursiveCount = 0

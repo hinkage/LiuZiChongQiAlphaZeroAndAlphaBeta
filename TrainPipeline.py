@@ -24,7 +24,7 @@ from PureMCTS import PureMCTSPlayer as PurePlayer
 Util.init()
 
 
-class TrainPipeline():
+class TrainPipeline:
     def __init__(self, modelPath=None):
         # 棋盘和游戏
         self.boardWidth = 4
@@ -225,6 +225,6 @@ class TrainPipeline():
 
 
 if __name__ == '__main__':
-    # trainPipeline = TrainPipeline(modelPath=Util.getPathToSaveModel(False, True, False))
-    trainPipeline = TrainPipeline(modelPath=None)
+    trainPipeline = TrainPipeline(modelPath=Util.getPathToSaveModel(False, True, False))
+    # trainPipeline = TrainPipeline(modelPath=None)
     trainPipeline.run()

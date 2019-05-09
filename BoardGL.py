@@ -8,14 +8,12 @@ __init__(self, move, hasEaten=False, rePutPos=list())里面定义了一个全局
 """
 from __future__ import print_function
 
-import datetime
+import copy
 import json
 import time
 import uuid
 
 import numpy as np
-
-import copy
 
 import Util
 from AlphaZero import AlphaZeroPlayer
@@ -488,7 +486,7 @@ def moveRecords2moves(moveRecords: list()):
 
 
 class Game(object):
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.board = Board()
         self.board.initBoard()
         self.boardLineCount = 4  # 棋盘的横纵方向的线条数,横纵都是相等数量的
@@ -591,7 +589,7 @@ class Game(object):
         playersMap = {player1Index: player1, player2Index: player2}
         if printMove:
             self.printBoard(self.board, player1.player, player2.player)
-        while (1):
+        while True:
             if not Util.getGlobalVar('playing'):
                 time.sleep(0.5)
                 continue
