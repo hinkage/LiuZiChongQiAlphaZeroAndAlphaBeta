@@ -154,7 +154,7 @@ http://VM_5_251_centos:6006
 http://111.230.145.180:6006/
 果然可以.
 用如下命令在后台运行,就可以随时观察训练过程了:
-nohup tensorboard --logdir from_db_train_log >> /dev/null 2>&1 &
+nohup tensorboard --logdir self_play_train_log1 >> /dev/null 2>&1 &
 不小心执行了下面这个语句,误删了吃谱记录,恢复需要学习MySQL日志,太麻烦
 delete from policy_update where type='from_db'; # 误删了
 只好重新开始吃谱

@@ -111,7 +111,7 @@ def savePolicyUpdate(uuid, KullbackLeiblerDivergence, oldLearningRateMultiplier,
 def getNewestLearningRateMultiplier(type):
     connection = openConnection()
     cursor = connection.cursor()
-    cursor.execute("select learning_rate_multiplier from policy_update where type = '{}' order by insert_time desc limit 0, 1".format(type))
+    cursor.execute("select new_learning_rate_multiplier from policy_update where type = '{}' order by insert_time desc limit 0, 1".format(type))
     row = cursor.fetchone()
     closeConnection(connection)
     return row[0]
