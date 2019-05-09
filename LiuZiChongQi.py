@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-感觉把写好的那个C的界面翻译成python，也是很需要时间的。现在先把工程实践4做完再说吧。2018/5/2/2/51
-"""
+
 import _thread
 import json
 import math
@@ -11,6 +9,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import BoardGL
+import Button
 from PIL import Image
 
 from AlphaBeta import AlphaBetaPlayer
@@ -36,14 +35,13 @@ replayGameCount = 0
 
 drawTree = Util.DrawTree()
 
-import Button
 
-
-class HumanPlayer(object):
+class HumanPlayer:
     def __init__(self):
         self.player = None
 
-    def getName(self):
+    @staticmethod
+    def getName():
         return 'Human'
 
     def setPlayerIndex(self, p):
@@ -59,15 +57,12 @@ class HumanPlayer(object):
         global move
         while not game.hasHumanMoved:
             time.sleep(0.2)
-
         if move == -1 or move not in board.getAvailableMoves():
             print("invalid move: %s" % move)
             game.hasHumanMoved = False
             move = self.getAction(board)
-
         location = board.move2coordinate(move)
         print("HumanPlayer choose action: %d,%d to %d,%d\n" % (location[0], location[1], location[2], location[3]))
-
         game.hasHumanMoved = False
         return move
 
@@ -141,7 +136,7 @@ def mouseFunction(mouseButton, state, x, y):
                 return
 
             if mapCoordinate(x, y, lst):  # 将屏幕坐标x,y映射为棋盘4*4坐标
-                if (lst[0] >= 0 and lst[1] >= 0):  # 如果不加此条件,则数组取值下标为负数时会抛出异常导致opengl报错
+                if lst[0] >= 0 and lst[1] >= 0:  # 如果不加此条件,则数组取值下标为负数时会抛出异常导致opengl报错
                     xa = int(lst[0])
                     ya = int(lst[1])
                     if game.board.state[ya * game.board.width + xa] != -1:  # 如果棋盘坐标对应位置不是空白的
@@ -509,11 +504,11 @@ def playGame():
         # zeroPlayer.setName('AlphaZero_2000')
         # zeroPlayer.setNetworkVersion(0)
 
-        policyValueNet1 = PolicyValueNet(width, height, modelPath='./weight/noloop/best_policy_5000')
-        zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-                                 playoutTimes=500, isSelfPlay=0)
-        zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
-        zeroPlayer1.setNetworkVersion(1)
+        # policyValueNet1 = PolicyValueNet(width, height, modelPath='./weight/noloop/best_policy_5000')
+        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
+        #                          playoutTimes=500, isSelfPlay=0)
+        # zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
+        # zeroPlayer1.setNetworkVersion(1)
 
         humanPlayer = HumanPlayer()
         humanPlayer1 = HumanPlayer()
@@ -523,20 +518,22 @@ def playGame():
         alphabetaPlayer1 = AlphaBetaPlayer(level=2)
 
         # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(alphabetaPlayer1, humanPlayer, startPlayer=0, printMove=1, type='play', board=board)
+        game.startPlay(humanPlayer, pureMCTSPlayer, startPlayer=0, printMove=1, type='play', board=board)
 
     except KeyboardInterrupt:
         print('\n\rquit')
 
 
 if __name__ == '__main__':
-    doPlay = 0
+    doPlay = 1
     isObserving = 0
     if doPlay:
         if isObserving:
             Util.setGlobalVar('isObserving', True)
             Util.setGlobalVar('treeData', dict())
             Util.setGlobalVar('drawTree', drawTree)
+        else:
+            Util.setGlobalVar('isObserving', False)
         resetGameAndBoard()
         playGame()
     else:

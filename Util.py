@@ -25,7 +25,7 @@ class CustomEncoder(json.JSONEncoder):
 
 def openConnection():
     # return pymysql.connect("localhost", "root", "123456", "liuzichongqi")
-    return pymysql.connect("111.230.145.180", "root", "li", "liuzichongqi")
+    return pymysql.connect("111.230.145.180", "root", "dhal987djadkja8795kdjsa", "liuzichongqi")
 
 
 def closeConnection(con: pymysql.connections.Connection):
@@ -50,6 +50,10 @@ def getGlobalVar(nodeName):
         return None
 
 
+def getPathToReadModel():
+    return './weight/noloop1/current_policy'
+
+
 def getPathToSaveModel(isLoop=False, isCurrent=False, isFromDB=False):
     if isLoop:
         if isCurrent:
@@ -59,14 +63,14 @@ def getPathToSaveModel(isLoop=False, isCurrent=False, isFromDB=False):
     else:
         if isCurrent:
             if isFromDB:
-                return './weight/noloop_train_from_db/current_policy'
+                return './weight/noloop_train_from_db1/current_policy'
             else:
-                return './weight/noloop1/current_policy'
+                return './weight/noloop2/current_policy'
         else:
             if isFromDB:
-                return './weight/noloop_train_from_db/best_policy'
+                return './weight/noloop_train_from_db1/best_policy'
             else:
-                return './weight/noloop1/best_policy'
+                return './weight/noloop2/best_policy'
 
 
 def getTrainLogPath(isFromDB=False):

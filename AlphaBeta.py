@@ -18,7 +18,6 @@ class SearchEngine:
         self.bestMove = None
         self.board = board
         self.maxDepth = searchDepth
-        self.undoMove = 0
         self.currentPerspective = currentPerspective  # 分数评估主视角方棋子类型
         self.leafNodeCount = 0
         self.recursiveCount = 0
@@ -75,50 +74,36 @@ class SearchEngine:
             treeData[nodeKeyStr] = currentTreeData
 
         isMaxPlayer = True if depth % 2 == 0 else False  # 第0层及其它偶数层是当前玩家,所以是最大化玩家
-        if isMaxPlayer:  # 最大化玩家选择最大值分支
-            moves = self.board.getAvailableMoves()
-            for move in moves:
-                self.board.doMove(move)
-                self.lastMove = move
-                if Util.getGlobalVar('isObserving'):
-                    if depth == self.maxDepth - 1:
-                        nextTreeData = currentTreeData
-                    else:
-                        nextTreeData = dict()
-                        currentTreeData[move] = nextTreeData
-                    score = self.alphaBeta(depth + 1, alpha, beta, treeData=nextTreeData)  # 深度优先
-                else:
-                    score = self.alphaBeta(depth + 1, alpha, beta)
-                self.board.undoMove()
 
+        moves = self.board.getAvailableMoves()
+        for move in moves:
+            self.board.doMove(move)
+            self.lastMove = move
+            if Util.getGlobalVar('isObserving'):
+                if depth == self.maxDepth - 1:
+                    nextTreeData = currentTreeData
+                else:
+                    nextTreeData = dict()
+                    currentTreeData[move] = nextTreeData
+                score = self.alphaBeta(depth + 1, alpha, beta, treeData=nextTreeData)  # 深度优先
+            else:
+                score = self.alphaBeta(depth + 1, alpha, beta)
+            self.board.undoMove()
+            if isMaxPlayer:  # 最大化玩家选择最大值分支
                 if score > alpha:
                     if depth == 0:
                         self.bestMove = move
                     alpha = score
                     if alpha >= beta:
                         return beta  # beta剪枝
-            return alpha
-        else:  # isMinPlayer
-            moves = self.board.getAvailableMoves()
-            for move in moves:
-                # 递归
-                self.board.doMove(move)
-                self.lastMove = move
-                if Util.getGlobalVar('isObserving'):
-                    if depth == self.maxDepth - 1:
-                        nextTreeData = currentTreeData
-                    else:
-                        nextTreeData = dict()
-                        currentTreeData[move] = nextTreeData
-                    score = self.alphaBeta(depth + 1, alpha, beta, treeData=nextTreeData)  # 深度优先
-                else:
-                    score = self.alphaBeta(depth + 1, alpha, beta)
-                self.board.undoMove()  #
-
+            else:  # isMinPlayer
                 if score < beta:
                     beta = score
                     if alpha >= beta:
                         return alpha  # alpha剪枝
+        if isMaxPlayer:
+            return alpha
+        else:
             return beta
 
 

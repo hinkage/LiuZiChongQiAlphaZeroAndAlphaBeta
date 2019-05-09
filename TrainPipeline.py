@@ -24,7 +24,7 @@ from PureMCTS import PureMCTSPlayer as PurePlayer
 Util.init()
 
 
-class TrainPipeline():
+class TrainPipeline:
     def __init__(self, modelPath=None):
         # 棋盘和游戏
         self.boardWidth = 4
@@ -54,12 +54,13 @@ class TrainPipeline():
         self.maxPureMctsPlayoutTimes = 3000
         self.modelPath = modelPath
         self.trainedGameCountInDB = Util.readGameCount(type='train')
+        self.lossDataCount = 12184  # 被黑客删掉的棋谱数量,这些棋谱数据已无法恢复
         if modelPath is not None:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight, logPath=Util.getTrainLogPath(isFromDB=False), modelPath=modelPath)
-            self.trainedGameCount = self.trainedGameCountInDB
+            self.trainedGameCount = self.trainedGameCountInDB + self.lossDataCount
         else:
             self.policyValueNet = PolicyValueNet(self.boardWidth, self.boardHeight, logPath=Util.getTrainLogPath(isFromDB=True))
-            self.trainedGameCount = 0
+            self.trainedGameCount = 0 + self.lossDataCount
         self.zeroPlayer = ZeroPlayer(self.policyValueNet.policyValueFunction,
                                      polynomialUpperConfidenceTreesConstant=self.polynomialUpperConfidenceTreesConstant,
                                      playoutTimes=self.playoutTimes, isSelfPlay=1)
@@ -225,6 +226,6 @@ class TrainPipeline():
 
 
 if __name__ == '__main__':
-    # trainPipeline = TrainPipeline(modelPath=Util.getPathToSaveModel(False, True, False))
-    trainPipeline = TrainPipeline(modelPath=None)
+    trainPipeline = TrainPipeline(modelPath=Util.getPathToReadModel())
+    # trainPipeline = TrainPipeline(modelPath=None)
     trainPipeline.run()

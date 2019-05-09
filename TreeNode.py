@@ -30,8 +30,7 @@ class TreeNode(object):
 
         :return: (action, nextNode)的元组
         """
-        return max(self.children.items(),
-                   key=lambda actionNode: actionNode[1].getNodeValue(polynomialUpperConfidenceTreesConstant))
+        return max(self.children.items(), key=lambda actionNode: actionNode[1].getNodeValue(polynomialUpperConfidenceTreesConstant))
 
     def update(self, leafValue):
         """
@@ -46,7 +45,7 @@ class TreeNode(object):
 
     def updateRecursively(self, leafValue):
         """
-        递归地更新所有该结点的祖先结点
+        递归地更新该结点及所有该结点的祖先结点
         """
         # 如果该结点不是根节点,那么它的父结点就应该被先一步更新
         if self._parent:
@@ -59,8 +58,7 @@ class TreeNode(object):
 
         @:param polynomialUpperConfidenceTreesConstant 在(0, inf)区间上的一个控制各个值相对影响的数字, Q和先验概率,P,在这个结点的分数.
         """
-        self._u = polynomialUpperConfidenceTreesConstant * self._P * np.sqrt(self._parent.visitedTimes) / (
-                1 + self.visitedTimes)
+        self._u = polynomialUpperConfidenceTreesConstant * self._P * np.sqrt(self._parent.visitedTimes) / (1 + self.visitedTimes)
         return self._Q + self._u
 
     def isLeafNode(self):

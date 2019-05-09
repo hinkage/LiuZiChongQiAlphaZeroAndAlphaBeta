@@ -31,8 +31,8 @@ class MCTS(object):
         """
         self.__root = TreeNode(None, 1.0)
         self._policy = policyValueFunction
-        self._c_puct = polynomialUpperConfidenceTreesConstant
-        self._n_playout = playoutTimes
+        self.polynomialUpperConfidenceTreesConstant = polynomialUpperConfidenceTreesConstant
+        self._playoutTime = playoutTimes
 
     def __playout(self, board):
         """
@@ -45,7 +45,7 @@ class MCTS(object):
             if node.isLeafNode():  # 到达叶子结点
                 break
             # 贪婪选择下一步行动
-            action, node = node.select(self._c_puct)
+            action, node = node.select(self.polynomialUpperConfidenceTreesConstant)
             board.doMove(action)
         # 使用网络评估叶子,网络输出(action, probability)这样的元组的列表和一个在[-1, 1]上的分数,这个分数是从当前玩家的角度来看最终游戏得分的预期值.
         actionProbabilities, leafValue = self._policy(board)
@@ -71,7 +71,7 @@ class MCTS(object):
         :param temperature: (0,1)中的参数, 控制探测水平
         :return: 可用的action和相应的概率
         """
-        for n in range(self._n_playout):
+        for n in range(self._playoutTime):
             copyState = copy.deepcopy(state)
             self.__playout(copyState)
         # 根据根节点处的访问计数来计算移动概率

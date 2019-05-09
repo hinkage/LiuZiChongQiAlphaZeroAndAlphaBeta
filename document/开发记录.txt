@@ -164,3 +164,29 @@ delete from policy_update where type='from_db'; # 误删了
 self.trainedGameCount = i + 1
 此处应为self.trainedGameCount自加1,否则其值在吃完历史谱后为10.
 修改后清空update_policy表,重启
+
+2019-05-02
+发现AlphaZero对AlphaZero的对弈还没有实现.
+
+2019-05-09
+不知道什么黑客这么无聊，几个月前我git仓库被删过，因为git用户设的git。昨天数据库里的棋谱表和参数表被删了，因为密码设的li。
+虽然密码简单，但是删我东西他也没好处啊，而且密码复杂一点他要破得花不知道多少时间，真的不知道这些人什么目的。
+前一万左右棋谱的胜率统计数据现在就永久丢失了。
+数据无法恢复,只能修改数据库密码后重启训练进程,存储权重目录改为:
+if isCurrent:
+            if isFromDB:
+                return './weight/noloop_train_from_db1/current_policy'
+            else:
+                return './weight/noloop2/current_policy'
+        else:
+            if isFromDB:
+                return './weight/noloop_train_from_db1/best_policy'
+            else:
+                return './weight/noloop2/best_policy'
+从tensorboard日志中获取最新的参数:
+熵: 1.6073437929153442
+学习率: 0.002222222276031971  算出乘子: 0.002222222276031971 / 5e-3 = 0.4444444552063942
+损失: 1.8099762201309204
+棋谱数量: 60.92k = 60920 / 5 = 12184
+
+
