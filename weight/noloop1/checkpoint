@@ -1,0 +1,4 @@
+model_checkpoint_path: "current_policy"
+all_model_checkpoint_paths: "../noloop_train_from_db/current_policy"
+all_model_checkpoint_paths: "best_policy_9317"
+all_model_checkpoint_paths: "current_policy"
