@@ -75,9 +75,9 @@ def getPathToSaveModel(isLoop=False, isCurrent=False, isFromDB=False):
 
 def getTrainLogPath(isFromDB=False):
     if isFromDB:
-        return './from_db_train_log'
+        return './from_db_train_log1'
     else:
-        return './self_play_train_log'
+        return './self_play_train_log1'
 
 
 def getTimeNowStr():
