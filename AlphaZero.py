@@ -44,7 +44,7 @@ class MCTS(object):
         while True:
             if node.isLeafNode():  # 到达叶子结点
                 break
-            # 贪婪选择下一步行动
+            # 选择下一步行动
             action, node = node.select(self.polynomialUpperConfidenceTreesConstant)
             board.doMove(action)
         # 使用网络评估叶子,网络输出(action, probability)这样的元组的列表和一个在[-1, 1]上的分数,这个分数是从当前玩家的角度来看最终游戏得分的预期值.

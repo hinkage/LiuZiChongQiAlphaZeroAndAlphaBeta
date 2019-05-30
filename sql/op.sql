@@ -10,11 +10,12 @@ order by insert_time desc limit 0, 500;
 select black, white, winner from game where type='evaluation' order by insert_time asc;
 
 select max(moves_length) from game;
+select avg(moves_length) from game;
 
 select
   insert_time, moves_length, type, black, white, winner, network_version
 from game
-where type='show'
+where type='play'
 order by insert_time asc;
 
 select * from game limit 0,5;

@@ -30,7 +30,7 @@ class TreeNode(object):
 
         :return: (action, nextNode)的元组
         """
-        return max(self.children.items(), key=lambda actionNode: actionNode[1].getNodeValue(polynomialUpperConfidenceTreesConstant))
+        return max(self.children.items(), key=lambda item: item[1].getNodeValue(polynomialUpperConfidenceTreesConstant))
 
     def update(self, leafValue):
         """

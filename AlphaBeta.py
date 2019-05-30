@@ -73,7 +73,7 @@ class SearchEngine:
             currentTreeData = dict()
             treeData[nodeKeyStr] = currentTreeData
 
-        isMaxPlayer = True if depth % 2 == 0 else False  # 第0层及其它偶数层是当前玩家,所以是最大化玩家
+        isMaxPlayer = True if depth % 2 == 0 else False  # 第0层及其它偶数层是当前玩家,所以是极大值玩家
 
         moves = self.board.getAvailableMoves()
         for move in moves:
@@ -89,7 +89,7 @@ class SearchEngine:
             else:
                 score = self.alphaBeta(depth + 1, alpha, beta)
             self.board.undoMove()
-            if isMaxPlayer:  # 最大化玩家选择最大值分支
+            if isMaxPlayer:  # 极大值玩家选择最大值分支
                 if score > alpha:
                     if depth == 0:
                         self.bestMove = move

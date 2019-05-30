@@ -189,4 +189,7 @@ if isCurrent:
 损失: 1.8099762201309204
 棋谱数量: 60.92k = 60920 / 5 = 12184
 
-
+5-18
+关闭云主机上的训练程序。
+数据库导出：
+mysqldump -uroot -pdhal987djadkja8795kdjsa --databases liuzichongqi > /home/liuzichongqi.sql

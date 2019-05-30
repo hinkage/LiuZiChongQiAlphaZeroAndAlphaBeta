@@ -77,8 +77,7 @@ class TrainPipeline:
                 # 逆时针旋转
                 equivalentState = np.array([np.rot90(state, i) for state in states])
                 # 这里的4的含义是每个点有4个方向可以走动,这里一共有16个点,下面会在boardHeight的方向上翻转
-                equivalentProbabilities = np.rot90(
-                    np.flipud(probabilities.reshape(self.boardHeight, self.boardWidth, 4)), i)
+                equivalentProbabilities = np.rot90(np.flipud(probabilities.reshape(self.boardHeight, self.boardWidth, 4)), i)
                 # 概率先上下翻转,因为之前的棋盘状态是上下翻转了的,这里需要保持一致
                 extendedData.append((equivalentState, np.flipud(equivalentProbabilities).flatten(), scores))
                 # 水平翻转

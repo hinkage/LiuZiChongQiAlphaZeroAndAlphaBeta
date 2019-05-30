@@ -56,7 +56,7 @@ class MCTS(object):
         while True:
             if node.isLeafNode():  # 到达叶子结点
                 break
-            # 贪婪选择下一步行动
+            # 选择下一步行动
             action, node = node.select(self._c_puct)
             state.doMove(action)
         # 此处返回的leafValue恒为0,被忽略,实际用的是随机概率,这和在AlphaZero.py中取
@@ -101,7 +101,7 @@ class MCTS(object):
         for n in range(self.playoutTime):
             copyedState = copy.deepcopy(state)
             self.__playout(copyedState)
-        return max(self._root.children.items(), key=lambda actionNode: actionNode[1].visitedTimes)[0]
+        return max(self._root.children.items(), key=lambda item: item[1].visitedTimes)[0]
 
     def updateWithMove(self, lastMove):
         """

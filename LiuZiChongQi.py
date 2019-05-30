@@ -86,7 +86,7 @@ def mapCoordinate(x, y, lst):
     lst[1] = int(lst[1])
     xt = lst[0] * game.boardInterval + game.boardInterval / 2
     if xt - game.pieceRadius <= x <= xt + game.pieceRadius:
-        yt = lst[1] * game.boardInterval + game.boardInterval / 2;
+        yt = lst[1] * game.boardInterval + game.boardInterval / 2
         if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
             lst[1] = game.boardLineCount - 1 - lst[1]
             return True
@@ -98,7 +98,7 @@ def mapCoordinate(x, y, lst):
         return False
     xt = (lst[0] + 1) * game.boardInterval + game.boardInterval / 2
     if xt - game.pieceRadius <= x <= xt + game.pieceRadius:
-        yt = lst[1] * game.boardInterval + game.boardInterval / 2;
+        yt = lst[1] * game.boardInterval + game.boardInterval / 2
         if yt - game.pieceRadius <= y <= yt + game.pieceRadius:
             lst[0] = lst[0] + 1
             lst[1] = game.boardLineCount - 1 - lst[1]
@@ -504,21 +504,20 @@ def playGame():
         # zeroPlayer.setName('AlphaZero_2000')
         # zeroPlayer.setNetworkVersion(0)
 
-        # policyValueNet1 = PolicyValueNet(width, height, modelPath='./weight/noloop/best_policy_5000')
-        # zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5,
-        #                          playoutTimes=500, isSelfPlay=0)
-        # zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
-        # zeroPlayer1.setNetworkVersion(1)
+        policyValueNet1 = PolicyValueNet(width, height, modelPath='./weight/noloop2/current_policy')
+        zeroPlayer1 = ZeroPlayer(policyValueNet1.policyValueFunction, polynomialUpperConfidenceTreesConstant=5, playoutTimes=500, isSelfPlay=0)
+        zeroPlayer1.setName('AlphaZero_' + str(Util.readGameCount(type='train')))
+        zeroPlayer1.setNetworkVersion(1)
 
         humanPlayer = HumanPlayer()
         humanPlayer1 = HumanPlayer()
-        pureMCTSPlayer = PureMCTSPlayer(playoutTimes=500)
+        pureMCTSPlayer = PureMCTSPlayer(playoutTimes=100)
         pureMCTSPlayer1 = PureMCTSPlayer(playoutTimes=3000)
         alphabetaPlayer = AlphaBetaPlayer(level=8)
         alphabetaPlayer1 = AlphaBetaPlayer(level=2)
 
         # 注意训练是基于黑子总是先行，所以start_player应该设置为0才和网络相符，是吗？
-        game.startPlay(humanPlayer, pureMCTSPlayer, startPlayer=0, printMove=1, type='play', board=board)
+        game.startPlay(zeroPlayer1, alphabetaPlayer, startPlayer=0, printMove=1, type='play', board=board)
 
     except KeyboardInterrupt:
         print('\n\rquit')
@@ -537,7 +536,7 @@ if __name__ == '__main__':
         resetGameAndBoard()
         playGame()
     else:
-        replayType = 'show'
+        replayType = 'play'
         replayGameCount = Util.readGameCount(type=replayType)
         replayIndex = replayGameCount - 1
         resetGameAndBoard(index=replayIndex, isReplaying=True)
