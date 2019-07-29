@@ -519,6 +519,7 @@ class Game(object):
         for x in range(self.boardLineCount):
             print("{0:8}".format(x), end='')
         print('\r\n\r\n')
+        print('黑方棋子数量:' + str(board.chessManCount[0]) + ',白方棋子数量:' + str(board.chessManCount[1]))
 
     def doOneSelfPlay(self, player: AlphaZeroPlayer, printMove=1, temperature=1e-3):
         self.board = Board()
