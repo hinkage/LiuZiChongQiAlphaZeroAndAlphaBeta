@@ -28,7 +28,7 @@ Markdown==2.6.11
 MarkupSafe==1.0
 matplotlib==2.2.2
 mpmath==1.0.0
-numpy==1.14.5
+numpy==1.22.0
 pandas==0.22.0
 Pillow==5.2.0
 prettytable==0.7.2
